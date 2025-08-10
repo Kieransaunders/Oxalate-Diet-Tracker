@@ -30,7 +30,7 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ visible, onClose, context
   const [showQuickQuestions, setShowQuickQuestions] = useState(true);
   const scrollViewRef = useRef<ScrollView>(null);
   
-  const { messages, isLoading, sendMessage, clearChat } = useChatStore();
+  const { messages, isLoading, streamingMessageId, sendMessageStreaming, clearChat } = useChatStore();
   const { currentDay } = useMealStore();
 
   useEffect(() => {
@@ -54,7 +54,7 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ visible, onClose, context
       setShowQuickQuestions(false);
       Keyboard.dismiss();
       
-      await sendMessage(messageText);
+      await sendMessageStreaming(messageText);
     }
   };
 
@@ -64,7 +64,7 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ visible, onClose, context
     const contextualQuestion = addFoodContext(question, currentDay.items, recentFoods);
     
     setShowQuickQuestions(false);
-    await sendMessage(contextualQuestion);
+    await sendMessageStreaming(contextualQuestion);
   };
 
   const formatTime = (timestamp: number) => {
@@ -75,6 +75,8 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ visible, onClose, context
   };
 
   const renderMessage = (message: any, index: number) => {
+    const isStreaming = streamingMessageId === message.id;
+    
     return (
       <View
         key={message.id}
@@ -88,7 +90,8 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ visible, onClose, context
             "max-w-xs p-3 rounded-2xl",
             message.isUser
               ? "bg-blue-500 rounded-br-md"
-              : "bg-gray-100 rounded-bl-md"
+              : "bg-gray-100 rounded-bl-md",
+            isStreaming && "border border-green-300"
           )}
         >
           <Text
@@ -98,24 +101,37 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ visible, onClose, context
             )}
           >
             {message.text}
+            {isStreaming && (
+              <Text className="text-green-600">▋</Text>
+            )}
           </Text>
         </View>
-        <Text className="text-xs text-gray-500 mt-1 px-1">
-          {formatTime(message.timestamp)}
-        </Text>
+        
+        <View className="flex-row items-center mt-1 px-1">
+          <Text className="text-xs text-gray-500">
+            {formatTime(message.timestamp)}
+          </Text>
+          {isStreaming && (
+            <View className="flex-row items-center ml-2">
+              <ActivityIndicator size="small" color="#10b981" />
+              <Text className="text-xs text-green-600 ml-1">Streaming...</Text>
+            </View>
+          )}
+        </View>
       </View>
     );
   };
 
   const renderTypingIndicator = () => {
-    if (!isLoading) return null;
+    // Only show typing indicator if loading and not streaming
+    if (!isLoading || streamingMessageId) return null;
     
     return (
       <View className="mb-4 px-4 items-start">
         <View className="bg-gray-100 p-3 rounded-2xl rounded-bl-md">
           <View className="flex-row items-center">
             <ActivityIndicator size="small" color="#6b7280" />
-            <Text className="text-gray-600 ml-2">Oxalate Assistant is typing...</Text>
+            <Text className="text-gray-600 ml-2">Connecting to assistant...</Text>
           </View>
         </View>
       </View>
@@ -140,15 +156,24 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ visible, onClose, context
         >
           <View className="flex-row items-center justify-between">
             <View className="flex-1">
-              <Text className="text-xl font-bold text-white">
-                Oxalate Assistant
-              </Text>
+              <View className="flex-row items-center">
+                <Text className="text-xl font-bold text-white">
+                  Oxalate Assistant
+                </Text>
+                {streamingMessageId && (
+                  <View className="ml-2 flex-row items-center">
+                    <ActivityIndicator size="small" color="#22c55e" />
+                  </View>
+                )}
+              </View>
               <Text className="text-blue-100 text-sm">
-                {contextFood 
-                  ? `Discussing: ${contextFood}`
-                  : currentDay.items.length > 0
-                    ? `Tracking ${currentDay.items.length} foods today`
-                    : "Your AI nutrition guide"
+                {streamingMessageId
+                  ? "AI is responding..."
+                  : contextFood 
+                    ? `Discussing: ${contextFood}`
+                    : currentDay.items.length > 0
+                      ? `Tracking ${currentDay.items.length} foods today`
+                      : "Your AI nutrition guide"
                 }
               </Text>
             </View>

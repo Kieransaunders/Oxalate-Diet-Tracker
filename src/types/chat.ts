@@ -9,10 +9,13 @@ export interface ChatMessage {
 export interface ChatStore {
   messages: ChatMessage[];
   isLoading: boolean;
+  streamingMessageId: string | null;
   
   // Actions
   addMessage: (text: string, isUser: boolean) => void;
   sendMessage: (text: string) => Promise<void>;
+  sendMessageStreaming: (text: string) => Promise<void>;
+  updateStreamingMessage: (messageId: string, text: string) => void;
   clearChat: () => void;
   setLoading: (loading: boolean) => void;
 }
