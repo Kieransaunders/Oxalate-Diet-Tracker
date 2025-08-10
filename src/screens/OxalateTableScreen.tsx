@@ -17,7 +17,7 @@ import { getCategoryColor, getCategoryBackgroundColor, getCategoryBorderColor } 
 import { cn } from '../utils/cn';
 import NutritionModal from '../components/NutritionModal';
 import MealTracker from '../components/MealTracker';
-import ChatAssistant from '../components/ChatAssistant';
+import EmbeddedChatbot from '../components/EmbeddedChatbot';
 import BottomNavigation from '../components/BottomNavigation';
 import type { OxalateCategory, OxalateFoodItem } from '../types/oxalate';
 
@@ -432,8 +432,8 @@ const OxalateTableScreen = () => {
         activeTab="foods"
       />
 
-      {/* Chat Assistant Modal */}
-      <ChatAssistant
+      {/* Embedded Chatbot Modal */}
+      <EmbeddedChatbot
         visible={showChatAssistant}
         onClose={closeChatAssistant}
         contextFood={chatContextFood}
