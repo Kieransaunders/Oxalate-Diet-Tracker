@@ -1,0 +1,334 @@
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  Pressable,
+  TextInput,
+  Alert,
+  ActivityIndicator,
+  Modal,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+import { generateRecipe, quickRecipePrompts, parseRecipeResponse, RecipeGenerationRequest } from '../api/recipe-generator-api';
+import { useRecipeStore } from '../state/recipeStore';
+import { getOxalateCategory } from '../api/oxalate-api';
+import { cn } from '../utils/cn';
+
+interface RecipeGeneratorScreenProps {
+  visible: boolean;
+  onClose: () => void;
+}
+
+const RecipeGeneratorScreen: React.FC<RecipeGeneratorScreenProps> = ({ visible, onClose }) => {
+  const insets = useSafeAreaInsets();
+  const [customPrompt, setCustomPrompt] = useState('');
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generatedRecipe, setGeneratedRecipe] = useState<string | null>(null);
+  const [selectedMealType, setSelectedMealType] = useState<'breakfast' | 'lunch' | 'dinner' | 'snack' | 'dessert' | undefined>();
+  const [selectedDifficulty, setSelectedDifficulty] = useState<'easy' | 'medium' | 'hard' | undefined>();
+  const [servings, setServings] = useState('4');
+  const [cookingTime, setCookingTime] = useState('');
+  
+  const { addRecipe } = useRecipeStore();
+
+  const handleQuickRecipe = async (prompt: any) => {
+    setIsGenerating(true);
+    setGeneratedRecipe(null);
+    
+    try {
+      const request: RecipeGenerationRequest = {
+        question: prompt.prompt,
+        mealType: prompt.mealType,
+        servings: prompt.servings,
+        cookingTime: prompt.cookingTime,
+        difficulty: prompt.difficulty,
+        dietaryRestrictions: prompt.dietaryRestrictions,
+      };
+      
+      const response = await generateRecipe(request);
+      
+      if (response.text) {
+        setGeneratedRecipe(response.text);
+      } else if (response.error) {
+        Alert.alert('Error', response.error);
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to generate recipe. Please try again.');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleCustomRecipe = async () => {
+    if (!customPrompt.trim()) {
+      Alert.alert('Please enter a recipe request');
+      return;
+    }
+    
+    setIsGenerating(true);
+    setGeneratedRecipe(null);
+    
+    try {
+      const request: RecipeGenerationRequest = {
+        question: customPrompt,
+        mealType: selectedMealType,
+        servings: parseInt(servings) || 4,
+        cookingTime: parseInt(cookingTime) || undefined,
+        difficulty: selectedDifficulty,
+        dietaryRestrictions: ['low-oxalate'],
+      };
+      
+      const response = await generateRecipe(request);
+      
+      if (response.text) {
+        setGeneratedRecipe(response.text);
+      } else if (response.error) {
+        Alert.alert('Error', response.error);
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to generate recipe. Please try again.');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleSaveRecipe = () => {
+    if (!generatedRecipe) return;
+    
+    try {
+      const parsedRecipe = parseRecipeResponse(generatedRecipe);
+      const category = getOxalateCategory(parsedRecipe.oxalatePerServing);
+      
+      const recipeToSave = {
+        ...parsedRecipe,
+        category,
+      };
+      
+      addRecipe(recipeToSave);
+      Alert.alert('Success!', 'Recipe saved to your collection!', [
+        { text: 'Generate Another', onPress: () => setGeneratedRecipe(null) },
+        { text: 'Close', onPress: onClose },
+      ]);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to save recipe. Please try again.');
+    }
+  };
+
+  const renderQuickPrompt = (prompt: any, index: number) => (
+    <Pressable
+      key={index}
+      onPress={() => handleQuickRecipe(prompt)}
+      disabled={isGenerating}
+      className={cn(
+        "bg-white border border-blue-200 rounded-lg p-4 mb-3",
+        isGenerating ? "opacity-50" : "active:bg-blue-50"
+      )}
+    >
+      <View className="flex-row items-center justify-between">
+        <View className="flex-1">
+          <Text className="font-semibold text-gray-900 mb-1">{prompt.title}</Text>
+          <Text className="text-gray-600 text-sm">{prompt.prompt}</Text>
+        </View>
+        <Ionicons name="chevron-forward" size={20} color="#6b7280" />
+      </View>
+    </Pressable>
+  );
+
+  return (
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={onClose}
+    >
+      <View className="flex-1 bg-gray-50">
+        {/* Header */}
+        <View 
+          className="bg-green-500 px-6 py-4 border-b border-green-600"
+          style={{ paddingTop: insets.top + 16 }}
+        >
+          <View className="flex-row items-center justify-between">
+            <View className="flex-1">
+              <Text className="text-xl font-bold text-white">
+                Recipe Generator
+              </Text>
+              <Text className="text-green-100 text-sm">
+                AI-powered low-oxalate recipe creation
+              </Text>
+            </View>
+            
+            <Pressable
+              onPress={onClose}
+              className="w-8 h-8 items-center justify-center rounded-full bg-green-400"
+            >
+              <Ionicons name="close" size={18} color="white" />
+            </Pressable>
+          </View>
+        </View>
+
+        <ScrollView className="flex-1 px-4 py-4" showsVerticalScrollIndicator={false}>
+          {!generatedRecipe ? (
+            <>
+              {/* Help Text */}
+              <View className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                <View className="flex-row items-start">
+                  <Ionicons name="bulb" size={20} color="#3b82f6" />
+                  <View className="flex-1 ml-3">
+                    <Text className="text-blue-900 font-medium text-sm mb-1">
+                      Generate Perfect Low-Oxalate Recipes
+                    </Text>
+                    <Text className="text-blue-700 text-xs leading-4">
+                      Choose a quick option below or create a custom recipe. All recipes are optimized for low-oxalate diets and include calculated oxalate content.
+                    </Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* Quick Recipe Options */}
+              <View className="mb-6">
+                <Text className="text-lg font-bold text-gray-900 mb-3">Quick Recipe Ideas</Text>
+                {quickRecipePrompts.map(renderQuickPrompt)}
+              </View>
+
+              {/* Custom Recipe Generator */}
+              <View className="bg-white rounded-lg p-4 mb-6">
+                <Text className="text-lg font-bold text-gray-900 mb-4">Custom Recipe Request</Text>
+                
+                {/* Custom Prompt */}
+                <View className="mb-4">
+                  <Text className="font-medium text-gray-700 mb-2">What would you like to cook?</Text>
+                  <TextInput
+                    className="border border-gray-300 rounded-lg px-3 py-3 text-gray-900"
+                    placeholder="e.g., 'A spicy low-oxalate chicken curry'"
+                    value={customPrompt}
+                    onChangeText={setCustomPrompt}
+                    multiline
+                    numberOfLines={3}
+                  />
+                </View>
+
+                {/* Meal Type */}
+                <View className="mb-4">
+                  <Text className="font-medium text-gray-700 mb-2">Meal Type</Text>
+                  <View className="flex-row flex-wrap">
+                    {(['breakfast', 'lunch', 'dinner', 'snack', 'dessert'] as const).map((type) => (
+                      <Pressable
+                        key={type}
+                        onPress={() => setSelectedMealType(selectedMealType === type ? undefined : type)}
+                        className={cn(
+                          "px-3 py-2 rounded-full mr-2 mb-2 border",
+                          selectedMealType === type
+                            ? "bg-green-100 border-green-300"
+                            : "bg-gray-100 border-gray-300"
+                        )}
+                      >
+                        <Text className={cn(
+                          "text-sm font-medium capitalize",
+                          selectedMealType === type ? "text-green-700" : "text-gray-600"
+                        )}>
+                          {type}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                </View>
+
+                {/* Options Row */}
+                <View className="flex-row space-x-4 mb-4">
+                  <View className="flex-1">
+                    <Text className="font-medium text-gray-700 mb-2">Servings</Text>
+                    <TextInput
+                      className="border border-gray-300 rounded-lg px-3 py-2 text-gray-900"
+                      placeholder="4"
+                      value={servings}
+                      onChangeText={setServings}
+                      keyboardType="numeric"
+                    />
+                  </View>
+                  
+                  <View className="flex-1">
+                    <Text className="font-medium text-gray-700 mb-2">Max Time (min)</Text>
+                    <TextInput
+                      className="border border-gray-300 rounded-lg px-3 py-2 text-gray-900"
+                      placeholder="30"
+                      value={cookingTime}
+                      onChangeText={setCookingTime}
+                      keyboardType="numeric"
+                    />
+                  </View>
+                </View>
+
+                {/* Generate Button */}
+                <Pressable
+                  onPress={handleCustomRecipe}
+                  disabled={isGenerating || !customPrompt.trim()}
+                  className={cn(
+                    "py-3 rounded-lg flex-row items-center justify-center",
+                    isGenerating || !customPrompt.trim()
+                      ? "bg-gray-300"
+                      : "bg-green-500"
+                  )}
+                >
+                  {isGenerating ? (
+                    <ActivityIndicator size="small" color="white" />
+                  ) : (
+                    <Ionicons name="restaurant" size={20} color="white" />
+                  )}
+                  <Text className={cn(
+                    "font-semibold ml-2",
+                    isGenerating || !customPrompt.trim() ? "text-gray-500" : "text-white"
+                  )}>
+                    {isGenerating ? 'Generating...' : 'Generate Recipe'}
+                  </Text>
+                </Pressable>
+              </View>
+            </>
+          ) : (
+            /* Generated Recipe Display */
+            <View className="bg-white rounded-lg p-4 mb-6">
+              <View className="flex-row items-center justify-between mb-4">
+                <Text className="text-lg font-bold text-gray-900">Generated Recipe</Text>
+                <View className="flex-row space-x-2">
+                  <Pressable
+                    onPress={() => setGeneratedRecipe(null)}
+                    className="bg-gray-100 px-3 py-2 rounded-lg"
+                  >
+                    <Text className="text-gray-700 font-medium">New Recipe</Text>
+                  </Pressable>
+                  
+                  <Pressable
+                    onPress={handleSaveRecipe}
+                    className="bg-green-500 px-4 py-2 rounded-lg"
+                  >
+                    <Text className="text-white font-medium">Save Recipe</Text>
+                  </Pressable>
+                </View>
+              </View>
+              
+              <ScrollView className="max-h-96">
+                <Text className="text-gray-900 leading-6">{generatedRecipe}</Text>
+              </ScrollView>
+            </View>
+          )}
+
+          {/* Loading State */}
+          {isGenerating && (
+            <View className="bg-white rounded-lg p-6 items-center">
+              <ActivityIndicator size="large" color="#22c55e" />
+              <Text className="text-gray-600 mt-3 font-medium">
+                Creating your perfect recipe...
+              </Text>
+              <Text className="text-gray-500 text-sm mt-1">
+                This may take a few moments
+              </Text>
+            </View>
+          )}
+        </ScrollView>
+      </View>
+    </Modal>
+  );
+};
+
+export default RecipeGeneratorScreen;

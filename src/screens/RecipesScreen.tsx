@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRecipeStore } from '../state/recipeStore';
 import { getCategoryColor, getCategoryBackgroundColor } from '../api/oxalate-api';
 import { cn } from '../utils/cn';
+import RecipeGeneratorScreen from './RecipeGeneratorScreen';
 import type { Recipe } from '../types/recipe';
 
 interface RecipesScreenProps {
@@ -23,6 +24,7 @@ const RecipesScreen: React.FC<RecipesScreenProps> = ({ onClose }) => {
   const insets = useSafeAreaInsets();
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [showRecipeModal, setShowRecipeModal] = useState(false);
+  const [showRecipeGenerator, setShowRecipeGenerator] = useState(false);
   
   const {
     searchQuery,
@@ -257,9 +259,9 @@ const RecipesScreen: React.FC<RecipesScreenProps> = ({ onClose }) => {
                     How to Save Recipes
                   </Text>
                   <Text className="text-green-700 text-xs leading-4">
-                    1. Ask the AI Assistant for low-oxalate recipes{'\n'}
-                    2. Tap the green 🍽️ button in the chat{'\n'}
-                    3. Recipes are automatically saved here with oxalate calculations
+                    1. Tap the green ➕ button to generate recipes{'\n'}
+                    2. Or ask the AI Assistant for recipes{'\n'}
+                    3. All recipes include calculated oxalate content
                   </Text>
                 </View>
               </View>
@@ -268,13 +270,28 @@ const RecipesScreen: React.FC<RecipesScreenProps> = ({ onClose }) => {
             <Ionicons name="restaurant-outline" size={64} color="#d1d5db" />
             <Text className="text-xl text-gray-500 mt-4 font-medium">No Recipes Yet</Text>
             <Text className="text-gray-400 text-center mt-2 px-4">
-              Start by asking the AI assistant: "Can you give me a low-oxalate dinner recipe?"
+              Tap the green ➕ button to generate your first recipe!
             </Text>
           </View>
         ) : (
           filteredRecipes.map(renderRecipeCard)
         )}
       </ScrollView>
+
+      {/* Floating Action Button - Generate Recipe */}
+      <Pressable
+        onPress={() => setShowRecipeGenerator(true)}
+        className="absolute bottom-6 right-6 w-14 h-14 bg-green-500 rounded-full items-center justify-center shadow-lg"
+        style={{ elevation: 5 }}
+      >
+        <Ionicons name="add" size={28} color="white" />
+      </Pressable>
+
+      {/* Recipe Generator Modal */}
+      <RecipeGeneratorScreen
+        visible={showRecipeGenerator}
+        onClose={() => setShowRecipeGenerator(false)}
+      />
 
       {/* Recipe Detail Modal */}
       {selectedRecipe && (

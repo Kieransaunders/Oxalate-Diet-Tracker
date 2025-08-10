@@ -365,10 +365,10 @@ const EmbeddedChatbot: React.FC<EmbeddedChatbotProps> = ({
               <Ionicons name="information-circle" size={20} color="#3b82f6" />
               <View className="flex-1 ml-3">
                 <Text className="text-blue-900 font-medium text-sm">
-                  💬 Ask about oxalates, foods, recipes, and diet tips
+                  💬 Ask questions about oxalates, foods, and diet tips
                 </Text>
                 <Text className="text-blue-700 text-xs mt-1">
-                  🍽️ Request recipes and tap the green button to save them automatically
+                  🍽️ For recipes, use the dedicated Recipe Generator in the Recipes tab
                 </Text>
               </View>
             </View>
