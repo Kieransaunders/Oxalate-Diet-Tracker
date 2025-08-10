@@ -32,6 +32,7 @@ const RecipeGeneratorScreen: React.FC<RecipeGeneratorScreenProps> = ({ visible, 
   const [selectedDifficulty, setSelectedDifficulty] = useState<'easy' | 'medium' | 'hard' | undefined>();
   const [servings, setServings] = useState('4');
   const [cookingTime, setCookingTime] = useState('');
+  const [showCustomForm, setShowCustomForm] = useState(true);
   
   const { addRecipe } = useRecipeStore();
 
@@ -39,6 +40,7 @@ const RecipeGeneratorScreen: React.FC<RecipeGeneratorScreenProps> = ({ visible, 
     setIsGenerating(true);
     setGeneratedRecipe(null);
     setLastError(null);
+    setShowCustomForm(false); // Hide custom form when quick option is selected
     
     try {
       const request: RecipeGenerationRequest = {
@@ -212,12 +214,23 @@ const RecipeGeneratorScreen: React.FC<RecipeGeneratorScreenProps> = ({ visible, 
 
               {/* Quick Recipe Options */}
               <View className="mb-6">
-                <Text className="text-lg font-bold text-gray-900 mb-3">Quick Recipe Ideas</Text>
+                <View className="flex-row items-center justify-between mb-3">
+                  <Text className="text-lg font-bold text-gray-900">Quick Recipe Ideas</Text>
+                  {!showCustomForm && (
+                    <Pressable
+                      onPress={() => setShowCustomForm(true)}
+                      className="bg-blue-100 px-3 py-1 rounded-lg"
+                    >
+                      <Text className="text-blue-700 text-sm font-medium">Custom Recipe</Text>
+                    </Pressable>
+                  )}
+                </View>
                 {quickRecipePrompts.map(renderQuickPrompt)}
               </View>
 
               {/* Custom Recipe Generator */}
-              <View className="bg-white rounded-lg p-4 mb-6">
+              {showCustomForm && (
+                <View className="bg-white rounded-lg p-4 mb-6">
                 <Text className="text-lg font-bold text-gray-900 mb-4">Custom Recipe Request</Text>
                 
                 {/* Custom Prompt */}
@@ -308,6 +321,7 @@ const RecipeGeneratorScreen: React.FC<RecipeGeneratorScreenProps> = ({ visible, 
                   </Text>
                 </Pressable>
               </View>
+              )}
             </>
           ) : (
             /* Generated Recipe Display */
@@ -316,7 +330,11 @@ const RecipeGeneratorScreen: React.FC<RecipeGeneratorScreenProps> = ({ visible, 
                 <Text className="text-lg font-bold text-gray-900">Generated Recipe</Text>
                 <View className="flex-row space-x-2">
                   <Pressable
-                    onPress={() => setGeneratedRecipe(null)}
+                    onPress={() => {
+                      setGeneratedRecipe(null);
+                      setShowCustomForm(true);
+                      setLastError(null);
+                    }}
                     className="bg-gray-100 px-3 py-2 rounded-lg"
                   >
                     <Text className="text-gray-700 font-medium">New Recipe</Text>
