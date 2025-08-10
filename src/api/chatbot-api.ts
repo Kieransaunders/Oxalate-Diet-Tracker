@@ -44,22 +44,49 @@ export const queryOxalateChatbotStreaming = async (
 
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 20000); // 20 second timeout (reduced)
+    const timeoutId = setTimeout(() => {
+      console.warn('Request timeout - aborting chatbot request');
+      controller.abort();
+    }, 15000); // 15 second timeout
 
-    const response = await fetch(CHATBOT_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ question }),
-      signal: controller.signal,
-    });
+    // Add retry logic with exponential backoff
+    let retryCount = 0;
+    const maxRetries = 2;
+    
+    const makeRequest = async (): Promise<Response> => {
+      try {
+        const response = await fetch(CHATBOT_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ question }),
+          signal: controller.signal,
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        return response;
+      } catch (fetchError) {
+        retryCount++;
+        if (retryCount <= maxRetries && fetchError instanceof Error && 
+            !fetchError.name.includes('AbortError') && 
+            (fetchError.message.includes('Network') || fetchError.message.includes('fetch'))) {
+          
+          console.warn(`Request failed, retrying (${retryCount}/${maxRetries})...`);
+          await new Promise(resolve => setTimeout(resolve, 1000 * retryCount)); // Exponential backoff
+          return makeRequest();
+        }
+        throw fetchError;
+      }
+    };
 
+    const response = await makeRequest();
     clearTimeout(timeoutId);
 
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-    }
+    // Response validation is now handled in makeRequest function
 
     // Check if the response supports streaming
     const reader = response.body?.getReader();
@@ -135,11 +162,25 @@ export const queryOxalateChatbotStreaming = async (
   } catch (error) {
     console.error('Chatbot Streaming Error:', error);
     
-    if (error instanceof Error && error.name === 'AbortError') {
-      callbacks.onError('Request timed out. Please try again.');
-    } else {
-      callbacks.onError(error instanceof Error ? error.message : 'Failed to get response from chatbot');
+    if (error instanceof Error) {
+      if (error.name === 'AbortError') {
+        callbacks.onError('Request timed out. The server may be busy. Please try again.');
+        return;
+      }
+      
+      if (error.message.includes('Network request failed') || error.message.includes('fetch')) {
+        callbacks.onError('Network connection issue. Please check your internet and try again.');
+        return;
+      }
+      
+      if (error.message.includes('HTTP 4') || error.message.includes('HTTP 5')) {
+        callbacks.onError('Server error. Using offline assistant instead.');
+        return;
+      }
     }
+    
+    // Generic fallback error
+    callbacks.onError('Unable to connect to AI assistant. Using offline mode.');
   }
 };
 
@@ -286,8 +327,14 @@ export const getMockResponse = (question: string): string => {
     response = "Boiling high-oxalate vegetables can reduce their oxalate content by 30-90%. Discard the cooking water. Steaming and roasting are less effective but still help somewhat.";
   } else if (lowerQuestion.includes('kidney stone')) {
     response = "High oxalate intake can contribute to calcium oxalate kidney stones in susceptible individuals. A low-oxalate diet, adequate hydration, and appropriate calcium intake can help reduce risk.";
+  } else if (lowerQuestion.includes('alternative') || lowerQuestion.includes('substitute')) {
+    response = "Low-oxalate alternatives: Instead of spinach, try lettuce or cabbage. Instead of nuts, try seeds in moderation. Instead of chocolate, try carob. Instead of tea, try herbal teas like chamomile.";
+  } else if (lowerQuestion.includes('symptom')) {
+    response = "High oxalate symptoms may include kidney stones, joint pain, or digestive issues. However, many people can eat moderate oxalates without problems. Consult a healthcare provider for personalized advice.";
+  } else if (lowerQuestion.includes('safe') || lowerQuestion.includes('can i eat')) {
+    response = "Foods under 5mg oxalate per serving are generally considered safe for most low-oxalate diets. Check the food list in this app for specific values and serving sizes.";
   } else {
-    response = "I'm here to help with oxalate-related questions! You can ask me about specific foods, daily limits, cooking methods, or general oxalate information.";
+    response = "I'm here to help with oxalate-related questions! You can ask me about specific foods, daily limits, cooking methods, alternatives, or general oxalate information. I'm currently working offline but can still provide helpful guidance.";
   }
   
   // Cache the response

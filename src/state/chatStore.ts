@@ -108,13 +108,17 @@ export const useChatStore = create<ChatStore>()(
               }));
             },
             onError: (error: string) => {
-              // Remove the empty bot message and add error message
+              console.warn('Streaming error, falling back to offline response:', error);
+              
+              // Create error message with offline response
+              const offlineResponse = `I'm having trouble connecting to the server right now. Here's what I can tell you offline:\n\n${getMockResponse(text)}`;
+              
               set((state) => ({
                 messages: [
                   ...state.messages.filter(msg => msg.id !== botMessageId),
                   {
                     id: Date.now().toString(),
-                    text: getMockResponse(text),
+                    text: offlineResponse,
                     isUser: false,
                     timestamp: Date.now(),
                   }
@@ -125,13 +129,18 @@ export const useChatStore = create<ChatStore>()(
             }
           });
         } catch (error) {
-          // Fallback to mock response
+          console.warn('Chat error, using offline response:', error);
+          
+          // Fallback to mock response with error context
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          const offlineResponse = `I'm currently offline due to a connection issue (${errorMessage}). Here's what I can help you with:\n\n${getMockResponse(text)}`;
+          
           set((state) => ({
             messages: [
               ...state.messages.filter(msg => msg.id !== botMessageId),
               {
                 id: Date.now().toString(),
-                text: getMockResponse(text),
+                text: offlineResponse,
                 isUser: false,
                 timestamp: Date.now(),
               }

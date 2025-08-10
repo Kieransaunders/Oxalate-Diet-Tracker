@@ -28,6 +28,7 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ visible, onClose, context
   const insets = useSafeAreaInsets();
   const [inputText, setInputText] = useState('');
   const [showQuickQuestions, setShowQuickQuestions] = useState(true);
+  const [connectionStatus, setConnectionStatus] = useState<'online' | 'offline' | 'connecting'>('online');
   const scrollViewRef = useRef<ScrollView>(null);
   
   const { messages, isLoading, streamingMessageId, sendMessageStreaming, clearChat } = useChatStore();
@@ -52,9 +53,16 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ visible, onClose, context
       
       setInputText('');
       setShowQuickQuestions(false);
+      setConnectionStatus('connecting');
       Keyboard.dismiss();
       
-      await sendMessageStreaming(messageText);
+      try {
+        await sendMessageStreaming(messageText);
+        setConnectionStatus('online');
+      } catch (error) {
+        setConnectionStatus('offline');
+        console.warn('Chat send error:', error);
+      }
     }
   };
 
@@ -64,7 +72,15 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ visible, onClose, context
     const contextualQuestion = addFoodContext(question, currentDay.items, recentFoods);
     
     setShowQuickQuestions(false);
-    await sendMessageStreaming(contextualQuestion);
+    setConnectionStatus('connecting');
+    
+    try {
+      await sendMessageStreaming(contextualQuestion);
+      setConnectionStatus('online');
+    } catch (error) {
+      setConnectionStatus('offline');
+      console.warn('Quick question error:', error);
+    }
   };
 
   const formatTime = (timestamp: number) => {
@@ -166,16 +182,33 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ visible, onClose, context
                   </View>
                 )}
               </View>
-              <Text className="text-blue-100 text-sm">
-                {streamingMessageId
-                  ? "AI is responding..."
-                  : contextFood 
-                    ? `Discussing: ${contextFood}`
-                    : currentDay.items.length > 0
-                      ? `Tracking ${currentDay.items.length} foods today`
-                      : "Your AI nutrition guide"
-                }
-              </Text>
+              <View className="flex-row items-center">
+                <Text className="text-blue-100 text-sm">
+                  {streamingMessageId
+                    ? "AI is responding..."
+                    : contextFood 
+                      ? `Discussing: ${contextFood}`
+                      : currentDay.items.length > 0
+                        ? `Tracking ${currentDay.items.length} foods today`
+                        : "Your AI nutrition guide"
+                  }
+                </Text>
+                
+                {/* Connection Status Indicator */}
+                <View className="ml-2 flex-row items-center">
+                  <View 
+                    className="w-2 h-2 rounded-full"
+                    style={{ 
+                      backgroundColor: connectionStatus === 'online' ? '#22c55e' : 
+                                     connectionStatus === 'connecting' ? '#f59e0b' : '#ef4444' 
+                    }}
+                  />
+                  <Text className="text-blue-200 text-xs ml-1">
+                    {connectionStatus === 'online' ? 'Online' : 
+                     connectionStatus === 'connecting' ? 'Connecting' : 'Offline'}
+                  </Text>
+                </View>
+              </View>
             </View>
             
             <View className="flex-row items-center">
@@ -270,13 +303,23 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ visible, onClose, context
               />
             </View>
             
+            {/* Retry button when offline */}
+            {connectionStatus === 'offline' && (
+              <Pressable
+                onPress={() => setConnectionStatus('online')}
+                className="w-10 h-10 rounded-full items-center justify-center bg-orange-500 mr-2"
+              >
+                <Ionicons name="refresh" size={18} color="white" />
+              </Pressable>
+            )}
+            
             <Pressable
               onPress={handleSendMessage}
               disabled={!inputText.trim() || isLoading}
               className={cn(
                 "w-10 h-10 rounded-full items-center justify-center",
                 inputText.trim() && !isLoading
-                  ? "bg-blue-500"
+                  ? connectionStatus === 'offline' ? "bg-gray-500" : "bg-blue-500"
                   : "bg-gray-300"
               )}
             >
