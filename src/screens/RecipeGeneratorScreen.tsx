@@ -27,6 +27,8 @@ const RecipeGeneratorScreen: React.FC<RecipeGeneratorScreenProps> = ({ visible, 
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedRecipe, setGeneratedRecipe] = useState<string | null>(null);
   const [selectedMealType, setSelectedMealType] = useState<'breakfast' | 'lunch' | 'dinner' | 'snack' | 'dessert' | undefined>();
+  const [lastError, setLastError] = useState<string | null>(null);
+  const [isRetrying, setIsRetrying] = useState(false);
   const [selectedDifficulty, setSelectedDifficulty] = useState<'easy' | 'medium' | 'hard' | undefined>();
   const [servings, setServings] = useState('4');
   const [cookingTime, setCookingTime] = useState('');
@@ -36,6 +38,7 @@ const RecipeGeneratorScreen: React.FC<RecipeGeneratorScreenProps> = ({ visible, 
   const handleQuickRecipe = async (prompt: any) => {
     setIsGenerating(true);
     setGeneratedRecipe(null);
+    setLastError(null);
     
     try {
       const request: RecipeGenerationRequest = {
@@ -51,11 +54,14 @@ const RecipeGeneratorScreen: React.FC<RecipeGeneratorScreenProps> = ({ visible, 
       
       if (response.text) {
         setGeneratedRecipe(response.text);
+        setLastError(null);
       } else if (response.error) {
-        Alert.alert('Error', response.error);
+        setLastError(response.error);
+        // Don't show alert immediately, let user see the error in UI
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to generate recipe. Please try again.');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to generate recipe. Please try again.';
+      setLastError(errorMessage);
     } finally {
       setIsGenerating(false);
     }
@@ -69,6 +75,7 @@ const RecipeGeneratorScreen: React.FC<RecipeGeneratorScreenProps> = ({ visible, 
     
     setIsGenerating(true);
     setGeneratedRecipe(null);
+    setLastError(null);
     
     try {
       const request: RecipeGenerationRequest = {
@@ -84,11 +91,13 @@ const RecipeGeneratorScreen: React.FC<RecipeGeneratorScreenProps> = ({ visible, 
       
       if (response.text) {
         setGeneratedRecipe(response.text);
+        setLastError(null);
       } else if (response.error) {
-        Alert.alert('Error', response.error);
+        setLastError(response.error);
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to generate recipe. Please try again.');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to generate recipe. Please try again.';
+      setLastError(errorMessage);
     } finally {
       setIsGenerating(false);
     }
@@ -323,6 +332,42 @@ const RecipeGeneratorScreen: React.FC<RecipeGeneratorScreenProps> = ({ visible, 
               <Text className="text-gray-500 text-sm mt-1">
                 This may take a few moments
               </Text>
+            </View>
+          )}
+
+          {/* Error State */}
+          {lastError && !isGenerating && (
+            <View className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+              <View className="flex-row items-start">
+                <Ionicons name="alert-circle" size={20} color="#ef4444" />
+                <View className="flex-1 ml-3">
+                  <Text className="text-red-900 font-medium text-sm mb-1">
+                    Unable to Generate Recipe
+                  </Text>
+                  <Text className="text-red-700 text-xs leading-4 mb-3">
+                    {lastError}
+                  </Text>
+                  
+                  {lastError.includes('temporarily unavailable') && (
+                    <Text className="text-red-600 text-xs mb-3">
+                      Don't worry! We've provided a delicious pre-made recipe below instead.
+                    </Text>
+                  )}
+                  
+                  <Pressable
+                    onPress={() => {
+                      setLastError(null);
+                      // Retry the last action
+                      if (customPrompt.trim()) {
+                        handleCustomRecipe();
+                      }
+                    }}
+                    className="bg-red-100 px-3 py-2 rounded-lg self-start"
+                  >
+                    <Text className="text-red-800 font-medium text-sm">Try Again</Text>
+                  </Pressable>
+                </View>
+              </View>
             </View>
           )}
         </ScrollView>
