@@ -95,6 +95,22 @@ const PortionSelector: React.FC<PortionSelectorProps> = ({
         </View>
 
         <View className="flex-1 px-6 py-6">
+          {/* Help Text */}
+          <View className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+            <View className="flex-row items-start">
+              <Ionicons name="calculator" size={20} color="#3b82f6" />
+              <View className="flex-1 ml-3">
+                <Text className="text-blue-900 font-medium text-sm mb-1">
+                  Customize Your Portion
+                </Text>
+                <Text className="text-blue-700 text-xs leading-4">
+                  Choose how much you're actually eating. The oxalate amount will be calculated 
+                  automatically based on your portion size.
+                </Text>
+              </View>
+            </View>
+          </View>
+
           {/* Standard Serving Info */}
           <View className="bg-gray-50 p-4 rounded-lg mb-6">
             <Text className="font-semibold text-gray-900 mb-1">Standard Serving</Text>

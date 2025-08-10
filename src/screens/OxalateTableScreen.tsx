@@ -59,10 +59,27 @@ const OxalateTableScreen = () => {
 
   const handleAddToMeal = (food: OxalateFoodItem, portion: number, oxalateAmount: number) => {
     addMealItem(food, portion, oxalateAmount);
+    // Close nutrition modal first
+    setShowNutritionModal(false);
+    setSelectedFood(null);
+    
     // Show a brief success feedback
     Alert.alert('Added to Meal', `${food.name} added to your daily tracker!`, [
-      { text: 'View Tracker', onPress: () => setShowMealTracker(true) },
-      { text: 'Ask Assistant', onPress: () => openChatForFood(food.name) },
+      { 
+        text: 'View Tracker', 
+        onPress: () => {
+          setTimeout(() => setShowMealTracker(true), 100);
+        }
+      },
+      { 
+        text: 'Ask Assistant', 
+        onPress: () => {
+          setTimeout(() => {
+            setChatContextFood(food.name);
+            setShowChatAssistant(true);
+          }, 100);
+        }
+      },
       { text: 'OK' }
     ]);
   };

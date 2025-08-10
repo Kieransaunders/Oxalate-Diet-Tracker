@@ -358,6 +358,23 @@ const EmbeddedChatbot: React.FC<EmbeddedChatbotProps> = ({
           </View>
         </View>
 
+        {/* Help Banner */}
+        {!isLoading && !hasError && (
+          <View className="bg-blue-50 border-b border-blue-200 px-4 py-3">
+            <View className="flex-row items-start">
+              <Ionicons name="information-circle" size={20} color="#3b82f6" />
+              <View className="flex-1 ml-3">
+                <Text className="text-blue-900 font-medium text-sm">
+                  💬 Ask about oxalates, foods, recipes, and diet tips
+                </Text>
+                <Text className="text-blue-700 text-xs mt-1">
+                  🍽️ Request recipes and tap the green button to save them automatically
+                </Text>
+              </View>
+            </View>
+          </View>
+        )}
+
         {/* Loading Indicator */}
         {isLoading && (
           <View className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10">

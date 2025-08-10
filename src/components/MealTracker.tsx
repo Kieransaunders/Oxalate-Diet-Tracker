@@ -72,6 +72,22 @@ const MealTracker: React.FC<MealTrackerProps> = ({ visible, onClose }) => {
         </View>
 
         <ScrollView className="flex-1 px-6 py-4">
+          {/* Help Text */}
+          <View className="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-6">
+            <View className="flex-row items-start">
+              <Ionicons name="analytics" size={20} color="#7c3aed" />
+              <View className="flex-1 ml-3">
+                <Text className="text-purple-900 font-medium text-sm mb-1">
+                  Monitor Your Daily Oxalate Intake
+                </Text>
+                <Text className="text-purple-700 text-xs leading-4">
+                  Track foods you eat throughout the day. Most low-oxalate diets recommend 
+                  staying under 40-50mg per day. Tap "Edit Limit" to customize your target.
+                </Text>
+              </View>
+            </View>
+          </View>
+
           {/* Daily Progress */}
           <View className="mb-6">
             <View className="flex-row items-center justify-between mb-2">

@@ -150,6 +150,24 @@ const NutritionModal: React.FC<NutritionModalProps> = ({ food, visible, onClose,
             </View>
           </View>
 
+          {/* Help Text */}
+          {onAddToMeal && (
+            <View className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+              <View className="flex-row items-start">
+                <Ionicons name="bulb" size={20} color="#16a34a" />
+                <View className="flex-1 ml-3">
+                  <Text className="text-green-900 font-medium text-sm mb-1">
+                    Track Your Daily Oxalate Intake
+                  </Text>
+                  <Text className="text-green-700 text-xs leading-4">
+                    Add this food to your daily tracker to monitor your oxalate consumption. 
+                    You can choose custom portions and see how it affects your daily total.
+                  </Text>
+                </View>
+              </View>
+            </View>
+          )}
+
           {/* Action Buttons */}
           {onAddToMeal && (
             <View className="flex-row space-x-3 mb-8">
@@ -158,7 +176,7 @@ const NutritionModal: React.FC<NutritionModalProps> = ({ food, visible, onClose,
                 className="flex-1 bg-blue-500 py-3 rounded-lg"
               >
                 <Text className="text-center font-semibold text-white">
-                  Choose Portion & Add to Meal
+                  Choose Portion & Add to Tracker
                 </Text>
               </Pressable>
             </View>

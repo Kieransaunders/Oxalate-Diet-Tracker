@@ -247,11 +247,28 @@ const RecipesScreen: React.FC<RecipesScreenProps> = ({ onClose }) => {
       {/* Recipes List */}
       <ScrollView className="flex-1 px-4 py-4" showsVerticalScrollIndicator={false}>
         {filteredRecipes.length === 0 ? (
-          <View className="items-center justify-center py-12">
+          <View className="items-center justify-center py-8">
+            {/* Help Banner */}
+            <View className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6 mx-2">
+              <View className="flex-row items-start">
+                <Ionicons name="bulb" size={20} color="#16a34a" />
+                <View className="flex-1 ml-3">
+                  <Text className="text-green-900 font-medium text-sm mb-1">
+                    How to Save Recipes
+                  </Text>
+                  <Text className="text-green-700 text-xs leading-4">
+                    1. Ask the AI Assistant for low-oxalate recipes{'\n'}
+                    2. Tap the green 🍽️ button in the chat{'\n'}
+                    3. Recipes are automatically saved here with oxalate calculations
+                  </Text>
+                </View>
+              </View>
+            </View>
+            
             <Ionicons name="restaurant-outline" size={64} color="#d1d5db" />
             <Text className="text-xl text-gray-500 mt-4 font-medium">No Recipes Yet</Text>
             <Text className="text-gray-400 text-center mt-2 px-4">
-              Ask the AI assistant to generate recipes, and they'll appear here automatically!
+              Start by asking the AI assistant: "Can you give me a low-oxalate dinner recipe?"
             </Text>
           </View>
         ) : (
