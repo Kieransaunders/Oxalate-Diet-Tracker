@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { generateRecipe, quickRecipePrompts, parseRecipeResponse, RecipeGenerationRequest } from '../api/recipe-generator-api';
+import { generateRecipe, quickRecipePrompts, parseRecipeResponse, RecipeGenerationRequest, setOfflineMode, isInOfflineMode } from '../api/recipe-generator-api';
 import { useRecipeStore } from '../state/recipeStore';
 import { getOxalateCategory } from '../api/oxalate-api';
 import { cn } from '../utils/cn';
@@ -34,6 +34,7 @@ const RecipeGeneratorScreen: React.FC<RecipeGeneratorScreenProps> = ({ visible, 
   const [servings, setServings] = useState('4');
   const [cookingTime, setCookingTime] = useState('');
   const [showCustomForm, setShowCustomForm] = useState(true);
+  const [offlineMode, setOfflineModeState] = useState(isInOfflineMode());
   
   const { addRecipe } = useRecipeStore();
 
@@ -197,7 +198,7 @@ const RecipeGeneratorScreen: React.FC<RecipeGeneratorScreenProps> = ({ visible, 
           {!generatedRecipe ? (
             <>
               {/* Help Text */}
-              <View className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+              <View className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
                 <View className="flex-row items-start">
                   <Ionicons name="bulb" size={20} color="#3b82f6" />
                   <View className="flex-1 ml-3">
@@ -208,6 +209,32 @@ const RecipeGeneratorScreen: React.FC<RecipeGeneratorScreenProps> = ({ visible, 
                       Choose a quick option below or create a custom recipe. All recipes are optimized for low-oxalate diets and include calculated oxalate content.
                     </Text>
                   </View>
+                </View>
+              </View>
+
+              {/* Offline Mode Toggle */}
+              <View className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-6">
+                <View className="flex-row items-center justify-between">
+                  <View className="flex-1">
+                    <Text className="text-orange-900 font-medium text-sm">Offline Mode</Text>
+                    <Text className="text-orange-700 text-xs">Use pre-made recipes if AI is unavailable</Text>
+                  </View>
+                  <Pressable
+                    onPress={() => {
+                      const newOfflineMode = !offlineMode;
+                      setOfflineModeState(newOfflineMode);
+                      setOfflineMode(newOfflineMode);
+                    }}
+                    className={cn(
+                      "w-12 h-6 rounded-full border-2",
+                      offlineMode ? "bg-orange-400 border-orange-400" : "bg-gray-200 border-gray-300"
+                    )}
+                  >
+                    <View className={cn(
+                      "w-4 h-4 rounded-full bg-white transition-all",
+                      offlineMode ? "ml-6" : "ml-0"
+                    )} />
+                  </Pressable>
                 </View>
               </View>
 

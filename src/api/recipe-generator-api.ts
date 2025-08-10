@@ -17,8 +17,22 @@ export interface RecipeGenerationResponse {
   error?: string;
 }
 
+// Add offline mode support
+let isOfflineMode = false;
+
+export const setOfflineMode = (offline: boolean) => {
+  isOfflineMode = offline;
+};
+
+export const isInOfflineMode = () => isOfflineMode;
+
 export const generateRecipe = async (request: RecipeGenerationRequest, retryCount = 0): Promise<RecipeGenerationResponse> => {
-  const maxRetries = 2;
+  // If offline mode is enabled, go straight to fallback
+  if (isOfflineMode) {
+    return getFallbackRecipe(request);
+  }
+  
+  const maxRetries = 1; // Reduced retries for faster fallback
   
   try {
     // Construct a detailed prompt for recipe generation
@@ -73,7 +87,7 @@ export const generateRecipe = async (request: RecipeGenerationRequest, retryCoun
 9. Any helpful cooking tips`;
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 8000); // Reduced to 8 second timeout for faster fallback
 
     const response = await fetch(RECIPE_API_URL, {
       method: "POST",
@@ -204,7 +218,7 @@ export const quickRecipePrompts = [
   },
 ];
 
-// Fallback recipes for when API is unavailable
+// Enhanced fallback recipes for when API is unavailable
 const fallbackRecipes = {
   breakfast: [
     {
@@ -235,6 +249,66 @@ const fallbackRecipes = {
 7. Serve immediately
 
 **Tips:** Keep heat low for creamy, soft scrambled eggs. Fresh herbs add flavor without oxalates.`
+    },
+    {
+      title: "Fluffy Pancakes with Blueberries",
+      content: `# Fluffy Pancakes with Blueberries
+
+**Servings:** 4
+**Prep Time:** 10 minutes
+**Cook Time:** 15 minutes
+**Difficulty:** Easy
+**Oxalate per serving:** 4mg
+
+## Ingredients:
+- 1 cup all-purpose flour
+- 2 tablespoons sugar
+- 2 teaspoons baking powder
+- 1/2 teaspoon salt
+- 1 cup milk
+- 1 large egg
+- 2 tablespoons melted butter
+- 1/2 cup fresh blueberries
+
+## Instructions:
+1. Mix flour, sugar, baking powder, and salt in a large bowl
+2. Whisk milk, egg, and melted butter in another bowl
+3. Pour wet ingredients into dry ingredients and stir until just combined
+4. Gently fold in blueberries
+5. Heat a lightly greased pan over medium heat
+6. Pour 1/4 cup batter for each pancake
+7. Cook until bubbles form on surface, then flip
+8. Cook until golden brown on both sides
+
+**Tips:** Don't overmix the batter - lumps are okay! Blueberries are naturally low in oxalates.`
+    },
+    {
+      title: "Coconut Chia Pudding",
+      content: `# Coconut Chia Pudding
+
+**Servings:** 2
+**Prep Time:** 5 minutes
+**Chill Time:** 4 hours
+**Difficulty:** Easy
+**Oxalate per serving:** 3mg
+
+## Ingredients:
+- 1/4 cup chia seeds
+- 1 cup coconut milk
+- 2 tablespoons maple syrup
+- 1/2 teaspoon vanilla extract
+- 1/4 cup shredded coconut
+- Fresh berries for topping
+
+## Instructions:
+1. Whisk together chia seeds, coconut milk, maple syrup, and vanilla
+2. Let sit for 5 minutes, then whisk again to prevent clumping
+3. Cover and refrigerate for at least 4 hours or overnight
+4. Stir well before serving
+5. Top with shredded coconut and berries
+6. Serve chilled
+
+**Tips:** Whisk frequently in the first 30 minutes to prevent clumping. Make ahead for busy mornings.`
     },
     {
       title: "Coconut Rice Pudding",
@@ -296,6 +370,64 @@ const fallbackRecipes = {
 7. Drizzle with lemon dressing
 
 **Tips:** Use a meat thermometer to ensure chicken reaches 165°F. Prep vegetables while chicken cooks.`
+    },
+    {
+      title: "Turkey and Avocado Wrap",
+      content: `# Turkey and Avocado Wrap
+
+**Servings:** 2
+**Prep Time:** 10 minutes
+**Cook Time:** 0 minutes
+**Difficulty:** Easy
+**Oxalate per serving:** 3mg
+
+## Ingredients:
+- 2 large flour tortillas
+- 6 oz sliced turkey breast
+- 1 ripe avocado, sliced
+- 2 tablespoons cream cheese
+- 1 cup lettuce leaves
+- 1/2 cucumber, sliced
+- 2 tablespoons ranch dressing
+
+## Instructions:
+1. Spread cream cheese on each tortilla
+2. Layer turkey, avocado, lettuce, and cucumber
+3. Drizzle with ranch dressing
+4. Roll tightly, starting from one end
+5. Secure with toothpicks if needed
+6. Cut in half diagonally to serve
+
+**Tips:** Choose large tortillas for easier rolling. Add a sprinkle of salt and pepper to the avocado.`
+    },
+    {
+      title: "Tuna Salad Lettuce Cups",
+      content: `# Tuna Salad Lettuce Cups
+
+**Servings:** 3
+**Prep Time:** 15 minutes
+**Cook Time:** 0 minutes
+**Difficulty:** Easy
+**Oxalate per serving:** 2mg
+
+## Ingredients:
+- 2 cans (5oz each) tuna in water, drained
+- 1/4 cup mayonnaise
+- 1 tablespoon lemon juice
+- 1 celery stalk, diced
+- 2 hard-boiled eggs, chopped
+- 1 head butter lettuce
+- Salt and pepper to taste
+
+## Instructions:
+1. Mix tuna, mayonnaise, and lemon juice in a bowl
+2. Add celery and chopped eggs
+3. Season with salt and pepper
+4. Separate lettuce leaves and wash
+5. Fill lettuce cups with tuna salad
+6. Serve immediately
+
+**Tips:** Use butter lettuce for best cups. Make tuna salad ahead for meal prep.`
     }
   ],
   dinner: [
