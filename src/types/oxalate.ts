@@ -6,6 +6,12 @@ export interface OxalateFoodItem {
   group?: string;
   oxalate_mg: number;
   category: OxalateCategory;
+  serving_size?: string;
+  serving_grams?: number;
+  calories?: number;
+  protein_g?: number;
+  fiber_g?: number;
+  aliases?: string[];
 }
 
 export interface FilterState {
