@@ -17,6 +17,7 @@ import { getCategoryColor, getCategoryBackgroundColor, getCategoryBorderColor } 
 import { cn } from '../utils/cn';
 import NutritionModal from '../components/NutritionModal';
 import MealTracker from '../components/MealTracker';
+import ChatAssistant from '../components/ChatAssistant';
 import type { OxalateCategory, OxalateFoodItem } from '../types/oxalate';
 
 const OxalateTableScreen = () => {
@@ -24,6 +25,8 @@ const OxalateTableScreen = () => {
   const [selectedFood, setSelectedFood] = useState<OxalateFoodItem | null>(null);
   const [showNutritionModal, setShowNutritionModal] = useState(false);
   const [showMealTracker, setShowMealTracker] = useState(false);
+  const [showChatAssistant, setShowChatAssistant] = useState(false);
+  const [chatContextFood, setChatContextFood] = useState<string | undefined>(undefined);
   const [groupByCategory, setGroupByCategory] = useState(false);
   
   const {
@@ -54,8 +57,19 @@ const OxalateTableScreen = () => {
     // Show a brief success feedback
     Alert.alert('Added to Meal', `${food.name} added to your daily tracker!`, [
       { text: 'View Tracker', onPress: () => setShowMealTracker(true) },
+      { text: 'Ask Assistant', onPress: () => openChatForFood(food.name) },
       { text: 'OK' }
     ]);
+  };
+
+  const openChatForFood = (foodName: string) => {
+    setChatContextFood(foodName);
+    setShowChatAssistant(true);
+  };
+
+  const closeChatAssistant = () => {
+    setShowChatAssistant(false);
+    setChatContextFood(undefined);
   };
 
   useEffect(() => {
@@ -181,6 +195,12 @@ const OxalateTableScreen = () => {
             >
               <Ionicons name="information-circle-outline" size={16} color="#6b7280" />
             </Pressable>
+            <Pressable 
+              onPress={() => openChatForFood(food.name)}
+              className="ml-1 p-1"
+            >
+              <Ionicons name="chatbubble-outline" size={14} color="#10b981" />
+            </Pressable>
           </View>
           {food.group && (
             <Text className="text-sm text-gray-600 mt-0.5">{food.group}</Text>
@@ -289,21 +309,33 @@ const OxalateTableScreen = () => {
             </Text>
           </View>
           
-          {/* Daily Tracker Button */}
-          <Pressable
-            onPress={() => setShowMealTracker(true)}
-            className="bg-blue-500 px-4 py-2 rounded-lg flex-row items-center"
-          >
-            <Ionicons name="restaurant" size={16} color="white" />
-            <Text className="text-white font-semibold ml-2">Tracker</Text>
-            {currentDay.items.length > 0 && (
-              <View className="bg-white rounded-full w-5 h-5 items-center justify-center ml-2">
-                <Text className="text-blue-500 text-xs font-bold">
-                  {currentDay.items.length}
-                </Text>
-              </View>
-            )}
-          </Pressable>
+          {/* Action Buttons */}
+          <View className="flex-row space-x-2">
+            {/* Chat Assistant Button */}
+            <Pressable
+              onPress={() => setShowChatAssistant(true)}
+              className="bg-green-500 px-3 py-2 rounded-lg flex-row items-center"
+            >
+              <Ionicons name="chatbubble-ellipses" size={16} color="white" />
+              <Text className="text-white font-semibold ml-1">Chat</Text>
+            </Pressable>
+            
+            {/* Daily Tracker Button */}
+            <Pressable
+              onPress={() => setShowMealTracker(true)}
+              className="bg-blue-500 px-3 py-2 rounded-lg flex-row items-center"
+            >
+              <Ionicons name="restaurant" size={16} color="white" />
+              <Text className="text-white font-semibold ml-1">Tracker</Text>
+              {currentDay.items.length > 0 && (
+                <View className="bg-white rounded-full w-5 h-5 items-center justify-center ml-2">
+                  <Text className="text-blue-500 text-xs font-bold">
+                    {currentDay.items.length}
+                  </Text>
+                </View>
+              )}
+            </Pressable>
+          </View>
         </View>
       </View>
 
@@ -426,6 +458,13 @@ const OxalateTableScreen = () => {
       <MealTracker
         visible={showMealTracker}
         onClose={() => setShowMealTracker(false)}
+      />
+
+      {/* Chat Assistant Modal */}
+      <ChatAssistant
+        visible={showChatAssistant}
+        onClose={closeChatAssistant}
+        contextFood={chatContextFood}
       />
     </View>
   );

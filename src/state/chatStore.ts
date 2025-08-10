@@ -1,0 +1,96 @@
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { ChatStore, ChatMessage } from '../types/chat';
+import { queryOxalateChatbot, getMockResponse } from '../api/chatbot-api';
+
+export const useChatStore = create<ChatStore>()(
+  persist(
+    (set, get) => ({
+      messages: [
+        {
+          id: 'welcome',
+          text: "Hi! I'm your oxalate diet assistant. I can help you understand oxalates, suggest food alternatives, and answer questions about low-oxalate eating. What would you like to know?",
+          isUser: false,
+          timestamp: Date.now(),
+        }
+      ],
+      isLoading: false,
+
+      addMessage: (text: string, isUser: boolean) => {
+        const newMessage: ChatMessage = {
+          id: Date.now().toString(),
+          text,
+          isUser,
+          timestamp: Date.now(),
+        };
+
+        set((state) => ({
+          messages: [...state.messages, newMessage]
+        }));
+      },
+
+      sendMessage: async (text: string) => {
+        const { addMessage } = get();
+        
+        // Add user message
+        addMessage(text, true);
+        
+        // Set loading state
+        set({ isLoading: true });
+
+        try {
+          // Query the chatbot API
+          const response = await queryOxalateChatbot(text);
+          
+          // Add bot response
+          if (response.text) {
+            addMessage(response.text, false);
+          } else if (response.error) {
+            // Fallback to mock response if API fails
+            const mockResponse = getMockResponse(text);
+            addMessage(mockResponse, false);
+          }
+        } catch (error) {
+          // Fallback to mock response
+          const mockResponse = getMockResponse(text);
+          addMessage(mockResponse, false);
+        } finally {
+          set({ isLoading: false });
+        }
+      },
+
+      clearChat: () => {
+        set({
+          messages: [
+            {
+              id: 'welcome',
+              text: "Hi! I'm your oxalate diet assistant. I can help you understand oxalates, suggest food alternatives, and answer questions about low-oxalate eating. What would you like to know?",
+              isUser: false,
+              timestamp: Date.now(),
+            }
+          ]
+        });
+      },
+
+      setLoading: (loading: boolean) => {
+        set({ isLoading: loading });
+      },
+    }),
+    {
+      name: 'chat-store',
+      storage: {
+        getItem: async (name) => {
+          const value = await AsyncStorage.getItem(name);
+          return value ? JSON.parse(value) : null;
+        },
+        setItem: async (name, value) => {
+          await AsyncStorage.setItem(name, JSON.stringify(value));
+        },
+        removeItem: async (name) => {
+          await AsyncStorage.removeItem(name);
+        },
+      },
+    }
+  )
+);
