@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -18,6 +18,7 @@ import { cn } from '../utils/cn';
 import NutritionModal from '../components/NutritionModal';
 import MealTracker from '../components/MealTracker';
 import ChatAssistant from '../components/ChatAssistant';
+import BottomNavigation from '../components/BottomNavigation';
 import type { OxalateCategory, OxalateFoodItem } from '../types/oxalate';
 
 const OxalateTableScreen = () => {
@@ -28,6 +29,7 @@ const OxalateTableScreen = () => {
   const [showChatAssistant, setShowChatAssistant] = useState(false);
   const [chatContextFood, setChatContextFood] = useState<string | undefined>(undefined);
   const [groupByCategory, setGroupByCategory] = useState(false);
+  const scrollViewRef = useRef<ScrollView>(null);
   
   const {
     filteredFoods,
@@ -70,6 +72,11 @@ const OxalateTableScreen = () => {
   const closeChatAssistant = () => {
     setShowChatAssistant(false);
     setChatContextFood(undefined);
+  };
+
+  const handleFoodsTabPress = () => {
+    // Scroll to top when Foods tab is tapped
+    scrollViewRef.current?.scrollTo({ y: 0, animated: true });
   };
 
   useEffect(() => {
@@ -282,49 +289,17 @@ const OxalateTableScreen = () => {
     <View className="flex-1 bg-white" style={{ paddingTop: insets.top }}>
       {/* Header */}
       <View className="bg-white px-4 py-6 border-b border-gray-200">
-        <View className="flex-row items-start justify-between">
-          <View className="flex-1">
-            <Text className="text-2xl font-bold text-gray-900 mb-2">
-              Low-Oxalate Foods
-            </Text>
-            <Text className="text-gray-600">
-              Traffic-light system for oxalate content
-            </Text>
-            {/* Show demo data indicator */}
-            <View className="bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 mt-2">
-              <Text className="text-blue-800 text-sm font-medium">
-                📋 Demo Data - Comprehensive food database with 33 foods
-              </Text>
-            </View>
-          </View>
-          
-          {/* Action Buttons */}
-          <View className="flex-row space-x-2">
-            {/* Chat Assistant Button */}
-            <Pressable
-              onPress={() => setShowChatAssistant(true)}
-              className="bg-green-500 px-3 py-2 rounded-lg flex-row items-center"
-            >
-              <Ionicons name="chatbubble-ellipses" size={16} color="white" />
-              <Text className="text-white font-semibold ml-1">Chat</Text>
-            </Pressable>
-            
-            {/* Daily Tracker Button */}
-            <Pressable
-              onPress={() => setShowMealTracker(true)}
-              className="bg-blue-500 px-3 py-2 rounded-lg flex-row items-center"
-            >
-              <Ionicons name="restaurant" size={16} color="white" />
-              <Text className="text-white font-semibold ml-1">Tracker</Text>
-              {currentDay.items.length > 0 && (
-                <View className="bg-white rounded-full w-5 h-5 items-center justify-center ml-2">
-                  <Text className="text-blue-500 text-xs font-bold">
-                    {currentDay.items.length}
-                  </Text>
-                </View>
-              )}
-            </Pressable>
-          </View>
+        <Text className="text-2xl font-bold text-gray-900 mb-2">
+          Low-Oxalate Foods
+        </Text>
+        <Text className="text-gray-600">
+          Traffic-light system for oxalate content
+        </Text>
+        {/* Show demo data indicator */}
+        <View className="bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 mt-2">
+          <Text className="text-blue-800 text-sm font-medium">
+            📋 Demo Data - Comprehensive food database with 33 foods
+          </Text>
         </View>
       </View>
 
@@ -386,7 +361,7 @@ const OxalateTableScreen = () => {
         </View>
       ) : groupByCategory ? (
         // Grouped View
-        <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+        <ScrollView ref={scrollViewRef} className="flex-1" showsVerticalScrollIndicator={false}>
           {groupedFoods?.map((group) => (
             <View key={group.name} className="mb-4">
               {/* Group Header */}
@@ -419,7 +394,7 @@ const OxalateTableScreen = () => {
         </ScrollView>
       ) : (
         // List View
-        <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+        <ScrollView ref={scrollViewRef} className="flex-1" showsVerticalScrollIndicator={false}>
           {renderHeader()}
           {filteredFoods.map(renderFoodRow)}
           
@@ -447,6 +422,14 @@ const OxalateTableScreen = () => {
       <MealTracker
         visible={showMealTracker}
         onClose={() => setShowMealTracker(false)}
+      />
+
+      {/* Bottom Navigation */}
+      <BottomNavigation
+        onFoodsPress={handleFoodsTabPress}
+        onChatPress={() => setShowChatAssistant(true)}
+        onTrackerPress={() => setShowMealTracker(true)}
+        activeTab="foods"
       />
 
       {/* Chat Assistant Modal */}
