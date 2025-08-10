@@ -19,9 +19,10 @@ import { cn } from '../utils/cn';
 interface RecipeGeneratorScreenProps {
   visible: boolean;
   onClose: () => void;
+  onRecipeCreated?: (recipe: any) => void;
 }
 
-const RecipeGeneratorScreen: React.FC<RecipeGeneratorScreenProps> = ({ visible, onClose }) => {
+const RecipeGeneratorScreen: React.FC<RecipeGeneratorScreenProps> = ({ visible, onClose, onRecipeCreated }) => {
   const insets = useSafeAreaInsets();
   const [customPrompt, setCustomPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -133,10 +134,8 @@ const RecipeGeneratorScreen: React.FC<RecipeGeneratorScreenProps> = ({ visible, 
       };
       
       addRecipe(recipeToSave);
-      Alert.alert('Success!', 'Recipe saved to your collection!', [
-        { text: 'Generate Another', onPress: () => setGeneratedRecipe(null) },
-        { text: 'Close', onPress: onClose },
-      ]);
+      onRecipeCreated?.(recipeToSave);
+      onClose();
     } catch (error) {
       Alert.alert('Error', 'Failed to save recipe. Please try again.');
     }

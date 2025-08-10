@@ -14,6 +14,7 @@ import { useRecipeStore } from '../state/recipeStore';
 import { getCategoryColor, getCategoryBackgroundColor } from '../api/oxalate-api';
 import { cn } from '../utils/cn';
 import RecipeGeneratorScreen from './RecipeGeneratorScreen';
+import EditRecipeModal from '../components/EditRecipeModal';
 import type { Recipe } from '../types/recipe';
 
 interface RecipesScreenProps {
@@ -25,6 +26,7 @@ const RecipesScreen: React.FC<RecipesScreenProps> = ({ onClose }) => {
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [showRecipeModal, setShowRecipeModal] = useState(false);
   const [showRecipeGenerator, setShowRecipeGenerator] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   
   const {
     searchQuery,
@@ -291,6 +293,11 @@ const RecipesScreen: React.FC<RecipesScreenProps> = ({ onClose }) => {
       <RecipeGeneratorScreen
         visible={showRecipeGenerator}
         onClose={() => setShowRecipeGenerator(false)}
+        onRecipeCreated={(recipe) => {
+          setSelectedRecipe(recipe);
+          setShowRecipeGenerator(false);
+          setShowRecipeModal(true);
+        }}
       />
 
       {/* Recipe Detail Modal */}
@@ -300,6 +307,27 @@ const RecipesScreen: React.FC<RecipesScreenProps> = ({ onClose }) => {
           visible={showRecipeModal}
           onClose={() => {
             setShowRecipeModal(false);
+            setSelectedRecipe(null);
+          }}
+          onEdit={() => {
+            setShowRecipeModal(false);
+            setShowEditModal(true);
+          }}
+        />
+      )}
+
+      {/* Edit Recipe Modal */}
+      {selectedRecipe && (
+        <EditRecipeModal
+          recipe={selectedRecipe}
+          visible={showEditModal}
+          onClose={() => {
+            setShowEditModal(false);
+            setSelectedRecipe(null);
+          }}
+          onSave={() => {
+            // Refresh the recipe list and close modals
+            setShowEditModal(false);
             setSelectedRecipe(null);
           }}
         />
@@ -313,9 +341,10 @@ interface RecipeDetailModalProps {
   recipe: Recipe;
   visible: boolean;
   onClose: () => void;
+  onEdit: () => void;
 }
 
-const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({ recipe, visible, onClose }) => {
+const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({ recipe, visible, onClose, onEdit }) => {
   const insets = useSafeAreaInsets();
   const { toggleFavorite } = useRecipeStore();
 
@@ -358,6 +387,13 @@ const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({ recipe, visible, 
                   size={20}
                   color={recipe.isFavorite ? "#ef4444" : "#6b7280"}
                 />
+              </Pressable>
+              
+              <Pressable
+                onPress={onEdit}
+                className="w-10 h-10 items-center justify-center rounded-full bg-blue-100"
+              >
+                <Ionicons name="create-outline" size={20} color="#3b82f6" />
               </Pressable>
               
               <Pressable
