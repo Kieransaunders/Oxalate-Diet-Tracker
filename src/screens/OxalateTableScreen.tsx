@@ -18,7 +18,7 @@ import { getCategoryColor, getCategoryBackgroundColor, getCategoryBorderColor } 
 import { cn } from '../utils/cn';
 import NutritionModal from '../components/NutritionModal';
 import MealTracker from '../components/MealTracker';
-import EmbeddedChatbot from '../components/EmbeddedChatbot';
+import OracleScreen from './OracleScreen';
 import BottomNavigation from '../components/BottomNavigation';
 import RecipesScreen from './RecipesScreen';
 import type { OxalateCategory, OxalateFoodItem } from '../types/oxalate';
@@ -28,9 +28,9 @@ const OxalateTableScreen = () => {
   const [selectedFood, setSelectedFood] = useState<OxalateFoodItem | null>(null);
   const [showNutritionModal, setShowNutritionModal] = useState(false);
   const [showMealTracker, setShowMealTracker] = useState(false);
-  const [showChatAssistant, setShowChatAssistant] = useState(false);
+  const [showOracle, setShowOracle] = useState(false);
   const [showRecipes, setShowRecipes] = useState(false);
-  const [chatContextFood, setChatContextFood] = useState<string | undefined>(undefined);
+  const [oracleContextFood, setOracleContextFood] = useState<string | undefined>(undefined);
   const [groupByCategory, setGroupByCategory] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
   
@@ -84,14 +84,9 @@ const OxalateTableScreen = () => {
     ]);
   };
 
-  const openChatForFood = (foodName: string) => {
-    setChatContextFood(foodName);
-    setShowChatAssistant(true);
-  };
-
-  const closeChatAssistant = () => {
-    setShowChatAssistant(false);
-    setChatContextFood(undefined);
+  const openOracleForFood = (foodName: string) => {
+    setOracleContextFood(foodName);
+    setShowOracle(true);
   };
 
   const handleFoodsTabPress = () => {
@@ -461,12 +456,11 @@ const OxalateTableScreen = () => {
         activeTab="foods"
       />
 
-      {/* Embedded Chatbot Modal */}
-      <EmbeddedChatbot
-        visible={showChatAssistant}
-        onClose={closeChatAssistant}
-        contextFood={chatContextFood}
-        onRecipeSaved={handleRecipeSaved}
+      {/* Oracle Screen Modal */}
+      <OracleScreen
+        visible={showOracle}
+        onClose={() => setShowOracle(false)}
+        contextFood={oracleContextFood}
       />
 
       {/* Recipes Screen Modal */}

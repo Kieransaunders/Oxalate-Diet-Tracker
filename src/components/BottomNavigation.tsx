@@ -49,7 +49,7 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({
       id: 'chat',
       icon: 'chatbubble-ellipses-outline',
       activeIcon: 'chatbubble-ellipses',
-      label: 'Assistant',
+      label: 'Oracle',
       onPress: onChatPress,
     },
     {
