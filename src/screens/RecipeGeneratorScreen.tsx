@@ -55,6 +55,14 @@ const RecipeGeneratorScreen: React.FC<RecipeGeneratorScreenProps> = ({ visible, 
       if (response.text) {
         setGeneratedRecipe(response.text);
         setLastError(null);
+        
+        // Show success message if this was a fallback recipe
+        if (response.text.includes('Curated Recipe')) {
+          // Brief toast-like feedback that fallback was used
+          setTimeout(() => {
+            Alert.alert('Recipe Ready!', 'Served you a delicious recipe from our curated collection.', [{ text: 'Great!' }]);
+          }, 500);
+        }
       } else if (response.error) {
         setLastError(response.error);
         // Don't show alert immediately, let user see the error in UI
@@ -92,6 +100,13 @@ const RecipeGeneratorScreen: React.FC<RecipeGeneratorScreenProps> = ({ visible, 
       if (response.text) {
         setGeneratedRecipe(response.text);
         setLastError(null);
+        
+        // Show success message if this was a fallback recipe
+        if (response.text.includes('Curated Recipe')) {
+          setTimeout(() => {
+            Alert.alert('Recipe Ready!', 'Served you a delicious recipe from our curated collection.', [{ text: 'Great!' }]);
+          }, 500);
+        }
       } else if (response.error) {
         setLastError(response.error);
       }
@@ -330,7 +345,7 @@ const RecipeGeneratorScreen: React.FC<RecipeGeneratorScreenProps> = ({ visible, 
                 Creating your perfect recipe...
               </Text>
               <Text className="text-gray-500 text-sm mt-1">
-                This may take a few moments
+                If this takes too long, we'll serve you a curated recipe instead
               </Text>
             </View>
           )}

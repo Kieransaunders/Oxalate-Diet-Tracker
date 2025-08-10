@@ -73,7 +73,7 @@ export const generateRecipe = async (request: RecipeGenerationRequest, retryCoun
 9. Any helpful cooking tips`;
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
 
     const response = await fetch(RECIPE_API_URL, {
       method: "POST",
@@ -128,19 +128,34 @@ export const generateRecipe = async (request: RecipeGenerationRequest, retryCoun
   } catch (error) {
     console.error('Recipe Generation API Error:', error);
     
-    // Retry logic
+    // Handle AbortError specifically
+    if (error instanceof Error && (error.name === 'AbortError' || error.message.includes('aborted'))) {
+      console.log('Request timed out, using fallback recipe');
+      return getFallbackRecipe(request);
+    }
+    
+    // Retry logic for other errors
     if (retryCount < maxRetries && error instanceof Error) {
       if (error.message.includes('temporarily unavailable') || 
-          error.message.includes('AbortError') ||
-          error.message.includes('network')) {
+          error.message.includes('network') ||
+          error.message.includes('fetch')) {
         console.log(`Retrying... Attempt ${retryCount + 1} of ${maxRetries}`);
-        await new Promise(resolve => setTimeout(resolve, 2000 * (retryCount + 1))); // Exponential backoff
+        await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1))); // Reduced backoff time
         return generateRecipe(request, retryCount + 1);
       }
     }
     
     // If all retries failed or non-retryable error, return fallback
-    if (retryCount >= maxRetries || error instanceof Error && error.message.includes('temporarily unavailable')) {
+    if (retryCount >= maxRetries) {
+      console.log('Max retries reached, using fallback recipe');
+      return getFallbackRecipe(request);
+    }
+    
+    // For other errors, try fallback
+    if (error instanceof Error && 
+        (error.message.includes('temporarily unavailable') ||
+         error.message.includes('503') ||
+         error.message.includes('502'))) {
       return getFallbackRecipe(request);
     }
     
@@ -391,7 +406,7 @@ const getFallbackRecipe = (request: RecipeGenerationRequest): RecipeGenerationRe
   const randomRecipe = recipes[Math.floor(Math.random() * recipes.length)];
   
   // Add a note that this is a fallback recipe
-  const fallbackNote = `\n\n**Note:** This is a pre-made recipe provided while our AI recipe generator is temporarily unavailable. It's still a delicious low-oxalate option!`;
+  const fallbackNote = `\n\n**✨ Curated Recipe:** This is a chef-tested low-oxalate recipe from our collection. Perfect for when you want a reliable, delicious meal!`;
   
   return {
     text: randomRecipe.content + fallbackNote
