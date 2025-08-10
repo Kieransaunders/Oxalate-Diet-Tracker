@@ -7,23 +7,27 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useMealStore } from '../state/mealStore';
+import { useRecipeStore } from '../state/recipeStore';
 import { cn } from '../utils/cn';
 
 interface BottomNavigationProps {
   onChatPress: () => void;
   onTrackerPress: () => void;
+  onRecipesPress: () => void;
   onFoodsPress?: () => void;
-  activeTab?: 'foods' | 'chat' | 'tracker';
+  activeTab?: 'foods' | 'chat' | 'tracker' | 'recipes';
 }
 
 const BottomNavigation: React.FC<BottomNavigationProps> = ({
   onChatPress,
   onTrackerPress,
+  onRecipesPress,
   onFoodsPress,
   activeTab = 'foods'
 }) => {
   const insets = useSafeAreaInsets();
   const { currentDay } = useMealStore();
+  const { recipes } = useRecipeStore();
 
   const navItems = [
     {
@@ -32,6 +36,14 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({
       activeIcon: 'list',
       label: 'Foods',
       onPress: onFoodsPress || (() => {}), // Optional action for foods tab
+    },
+    {
+      id: 'recipes',
+      icon: 'restaurant-outline',
+      activeIcon: 'restaurant',
+      label: 'Recipes',
+      onPress: onRecipesPress,
+      badge: recipes.length > 0 ? recipes.length : undefined,
     },
     {
       id: 'chat',

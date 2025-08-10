@@ -11,23 +11,29 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WebView, WebViewNavigation } from 'react-native-webview';
 import { Ionicons } from '@expo/vector-icons';
 import { useMealStore } from '../state/mealStore';
+import { useRecipeStore } from '../state/recipeStore';
+import type { Recipe } from '../types/recipe';
 
 interface EmbeddedChatbotProps {
   visible: boolean;
   onClose: () => void;
   contextFood?: string;
+  onRecipeSaved?: () => void;
 }
 
 const EmbeddedChatbot: React.FC<EmbeddedChatbotProps> = ({ 
   visible, 
   onClose, 
-  contextFood 
+  contextFood,
+  onRecipeSaved 
 }) => {
   const insets = useSafeAreaInsets();
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
+  const [showRecipeCapture, setShowRecipeCapture] = useState(false);
   const webViewRef = useRef<WebView>(null);
   const { currentDay } = useMealStore();
+  const { addRecipe, parseRecipeFromText } = useRecipeStore();
 
   // Construct URL with context parameters
   const getChatbotUrl = () => {
@@ -72,9 +78,97 @@ const EmbeddedChatbot: React.FC<EmbeddedChatbotProps> = ({
     console.log('Navigation state changed:', navState.url);
   };
 
-  const injectContextScript = () => {
-    if (!contextFood && currentDay.items.length === 0) return '';
+  const handleRecipeCapture = () => {
+    // JavaScript to extract chat content for recipe parsing
+    const extractScript = `
+      (function() {
+        try {
+          // Try to find the last bot message or recent messages
+          const messageSelectors = [
+            '.message-content',
+            '.chat-message',
+            '.bot-message',
+            '.assistant-message',
+            '[class*="message"]',
+            'p', 'div'
+          ];
+          
+          let lastBotMessage = '';
+          
+          // Try to find recent messages
+          for (const selector of messageSelectors) {
+            const messages = document.querySelectorAll(selector);
+            if (messages.length > 0) {
+              // Get the last few messages
+              const recentMessages = Array.from(messages).slice(-3);
+              lastBotMessage = recentMessages.map(msg => msg.textContent || msg.innerText).join('\\n\\n');
+              if (lastBotMessage.length > 50) break; // If we found substantial content
+            }
+          }
+          
+          // If no specific messages found, try to get all visible text
+          if (!lastBotMessage) {
+            const bodyText = document.body.innerText || document.body.textContent;
+            const lines = bodyText.split('\\n').filter(line => line.trim().length > 0);
+            lastBotMessage = lines.slice(-20).join('\\n'); // Get last 20 lines
+          }
+          
+          // Send the content back to React Native
+          window.ReactNativeWebView.postMessage(JSON.stringify({
+            type: 'recipeContent',
+            content: lastBotMessage
+          }));
+          
+        } catch (e) {
+          window.ReactNativeWebView.postMessage(JSON.stringify({
+            type: 'error',
+            message: 'Could not extract recipe content: ' + e.message
+          }));
+        }
+      })();
+    `;
+    
+    webViewRef.current?.injectJavaScript(extractScript);
+  };
 
+  const handleWebViewMessage = (event: any) => {
+    try {
+      const data = JSON.parse(event.nativeEvent.data);
+      
+      if (data.type === 'recipeContent') {
+        const parsedRecipe = parseRecipeFromText(data.content);
+        
+        if (parsedRecipe && parsedRecipe.title && parsedRecipe.category) {
+          Alert.alert(
+            'Recipe Found!',
+            `Found a recipe: "${parsedRecipe.title}". Would you like to save it?`,
+            [
+              { text: 'Cancel', style: 'cancel' },
+              {
+                text: 'Save Recipe',
+                onPress: () => {
+                  addRecipe(parsedRecipe as Omit<Recipe, 'id' | 'createdAt' | 'updatedAt'>);
+                  Alert.alert('Success', 'Recipe saved to your collection!');
+                  onRecipeSaved?.();
+                },
+              },
+            ]
+          );
+        } else {
+          Alert.alert(
+            'No Recipe Found',
+            'Could not detect a recipe in the current chat. Make sure the AI has provided a complete recipe with ingredients and instructions.'
+          );
+        }
+      } else if (data.type === 'error') {
+        console.error('WebView error:', data.message);
+      }
+    } catch (error) {
+      console.error('Error parsing WebView message:', error);
+    }
+  };
+
+  const injectContextScript = () => {
     let contextMessage = '';
     
     if (contextFood) {
@@ -241,7 +335,7 @@ const EmbeddedChatbot: React.FC<EmbeddedChatbotProps> = ({
                   ? `Discussing: ${contextFood}`
                   : currentDay.items.length > 0
                     ? `Tracking ${currentDay.items.length} foods today`
-                    : "Ask about oxalates, foods, and diet tips"
+                    : "Ask for recipes and tap 🍽️ to save them"
                 }
               </Text>
             </View>
@@ -283,6 +377,7 @@ const EmbeddedChatbot: React.FC<EmbeddedChatbotProps> = ({
           onLoadEnd={handleLoadEnd}
           onError={handleError}
           onNavigationStateChange={handleNavigationStateChange}
+          onMessage={handleWebViewMessage}
           injectedJavaScript={injectContextScript()}
           javaScriptEnabled={true}
           domStorageEnabled={true}
@@ -312,6 +407,17 @@ const EmbeddedChatbot: React.FC<EmbeddedChatbotProps> = ({
             }
           }}
         />
+
+        {/* Floating Recipe Capture Button */}
+        {!isLoading && !hasError && (
+          <Pressable
+            onPress={handleRecipeCapture}
+            className="absolute bottom-6 right-6 w-14 h-14 bg-green-500 rounded-full items-center justify-center shadow-lg"
+            style={{ elevation: 5 }}
+          >
+            <Ionicons name="restaurant" size={24} color="white" />
+          </Pressable>
+        )}
       </View>
     </Modal>
   );

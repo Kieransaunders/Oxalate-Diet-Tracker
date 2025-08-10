@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   Alert,
   Keyboard,
+  Modal,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,6 +20,7 @@ import NutritionModal from '../components/NutritionModal';
 import MealTracker from '../components/MealTracker';
 import EmbeddedChatbot from '../components/EmbeddedChatbot';
 import BottomNavigation from '../components/BottomNavigation';
+import RecipesScreen from './RecipesScreen';
 import type { OxalateCategory, OxalateFoodItem } from '../types/oxalate';
 
 const OxalateTableScreen = () => {
@@ -27,6 +29,7 @@ const OxalateTableScreen = () => {
   const [showNutritionModal, setShowNutritionModal] = useState(false);
   const [showMealTracker, setShowMealTracker] = useState(false);
   const [showChatAssistant, setShowChatAssistant] = useState(false);
+  const [showRecipes, setShowRecipes] = useState(false);
   const [chatContextFood, setChatContextFood] = useState<string | undefined>(undefined);
   const [groupByCategory, setGroupByCategory] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
@@ -77,6 +80,14 @@ const OxalateTableScreen = () => {
   const handleFoodsTabPress = () => {
     // Scroll to top when Foods tab is tapped
     scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+  };
+
+  const handleRecipeSaved = () => {
+    // Show a brief confirmation and optionally open recipes
+    Alert.alert('Recipe Saved!', 'Your recipe has been saved successfully.', [
+      { text: 'OK' },
+      { text: 'View Recipes', onPress: () => setShowRecipes(true) },
+    ]);
   };
 
   useEffect(() => {
@@ -427,6 +438,7 @@ const OxalateTableScreen = () => {
       {/* Bottom Navigation */}
       <BottomNavigation
         onFoodsPress={handleFoodsTabPress}
+        onRecipesPress={() => setShowRecipes(true)}
         onChatPress={() => setShowChatAssistant(true)}
         onTrackerPress={() => setShowMealTracker(true)}
         activeTab="foods"
@@ -437,7 +449,18 @@ const OxalateTableScreen = () => {
         visible={showChatAssistant}
         onClose={closeChatAssistant}
         contextFood={chatContextFood}
+        onRecipeSaved={handleRecipeSaved}
       />
+
+      {/* Recipes Screen Modal */}
+      <Modal
+        visible={showRecipes}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowRecipes(false)}
+      >
+        <RecipesScreen onClose={() => setShowRecipes(false)} />
+      </Modal>
     </View>
   );
 };
