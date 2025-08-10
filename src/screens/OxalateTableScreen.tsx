@@ -275,25 +275,8 @@ const OxalateTableScreen = () => {
     </View>
   );
 
-  if (error) {
-    return (
-      <View className="flex-1 items-center justify-center px-4">
-        <Ionicons name="warning" size={48} color="#ef4444" />
-        <Text className="text-lg font-semibold text-gray-900 mt-4 text-center">
-          Unable to load data
-        </Text>
-        <Text className="text-gray-600 mt-2 text-center">
-          {error}
-        </Text>
-        <Pressable
-          onPress={fetchFoods}
-          className="bg-blue-500 px-6 py-3 rounded-lg mt-4"
-        >
-          <Text className="text-white font-semibold">Try Again</Text>
-        </Pressable>
-      </View>
-    );
-  }
+  // Remove error display since we gracefully fall back to mock data
+  // if (error) { ... }
 
   return (
     <View className="flex-1 bg-white" style={{ paddingTop: insets.top }}>
@@ -307,6 +290,12 @@ const OxalateTableScreen = () => {
             <Text className="text-gray-600">
               Traffic-light system for oxalate content
             </Text>
+            {/* Show demo data indicator */}
+            <View className="bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 mt-2">
+              <Text className="text-blue-800 text-sm font-medium">
+                📋 Demo Data - Comprehensive food database with 33 foods
+              </Text>
+            </View>
           </View>
           
           {/* Action Buttons */}
