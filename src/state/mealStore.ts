@@ -21,6 +21,36 @@ export const useMealStore = create<MealStore>()(
       mealHistory: [],
       dailyLimit: 50, // Default 50mg daily limit
 
+      // Helper function to find food in database by name (fuzzy matching)
+      findFoodByName: (foodName: string, foodDatabase: OxalateFoodItem[]): OxalateFoodItem | null => {
+        const cleanName = foodName.toLowerCase().trim();
+        
+        // Try exact match first
+        let match = foodDatabase.find(food => 
+          food.name.toLowerCase() === cleanName
+        );
+        
+        if (match) return match;
+        
+        // Try partial match
+        match = foodDatabase.find(food => 
+          food.name.toLowerCase().includes(cleanName) || 
+          cleanName.includes(food.name.toLowerCase())
+        );
+        
+        if (match) return match;
+        
+        // Try alias matching
+        match = foodDatabase.find(food => 
+          food.aliases?.some(alias => 
+            alias.toLowerCase().includes(cleanName) || 
+            cleanName.includes(alias.toLowerCase())
+          )
+        );
+        
+        return match || null;
+      },
+
       addMealItem: (food: OxalateFoodItem, portion: number, oxalateAmount: number) => {
         const today = getTodayString();
         const newItem: MealItem = {
@@ -92,6 +122,47 @@ export const useMealStore = create<MealStore>()(
 
       clearDay: () => {
         set({ currentDay: createEmptyDay(getTodayString()) });
+      },
+
+      // Add all ingredients from a recipe to the tracker
+      addRecipeIngredients: (recipe: { 
+        title: string; 
+        ingredients: Array<{ name: string; amount?: string; }>; 
+        servings: number;
+      }, foodDatabase: OxalateFoodItem[]): { 
+        added: number; 
+        notFound: string[]; 
+        totalOxalate: number; 
+      } => {
+        const { addMealItem, findFoodByName } = get();
+        let added = 0;
+        let totalOxalate = 0;
+        const notFound: string[] = [];
+
+        recipe.ingredients.forEach((ingredient) => {
+          // Clean ingredient name (remove amounts/measurements)
+          const cleanIngredientName = ingredient.name
+            .replace(/^\d+(?:\.\d+)?\s*(?:cups?|tbsp|tsp|oz|lbs?|grams?|g|ml|l)\s*/i, '')
+            .replace(/^(?:a\s+)?(?:few\s+)?(?:pinch\s+of\s+)?/i, '')
+            .split(',')[0]
+            .trim();
+
+          const foodMatch = findFoodByName(cleanIngredientName, foodDatabase);
+          
+          if (foodMatch) {
+            // Use default portion size (typically 1 serving)
+            const portionSize = 1;
+            const oxalateAmount = (foodMatch.oxalate_mg / recipe.servings) * portionSize;
+            
+            addMealItem(foodMatch, portionSize, oxalateAmount);
+            added++;
+            totalOxalate += oxalateAmount;
+          } else {
+            notFound.push(cleanIngredientName);
+          }
+        });
+
+        return { added, notFound, totalOxalate };
       },
     }),
     {

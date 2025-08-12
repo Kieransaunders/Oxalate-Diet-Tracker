@@ -20,8 +20,16 @@ export interface StreamingCallbacks {
   onError: (error: string) => void;
 }
 
+// Enhanced question with system context
+export const enhanceQuestionWithSystemContext = (question: string, systemContext?: string): string => {
+  if (!systemContext) return question;
+  
+  // Add system context as a prefix to help guide the Oracle's response
+  return `[System Context: ${systemContext}]\n\nUser Question: ${question}`;
+};
+
 // Direct API query function
-export const queryOxalateOracle = async (question: string): Promise<ChatResponse> => {
+export const queryOxalateOracle = async (question: string, systemContext?: string): Promise<ChatResponse> => {
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
@@ -31,7 +39,7 @@ export const queryOxalateOracle = async (question: string): Promise<ChatResponse
       headers: {
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({ question }),
+      body: JSON.stringify({ question: enhanceQuestionWithSystemContext(question, systemContext) }),
       signal: controller.signal,
     });
 
@@ -89,11 +97,12 @@ export const queryOxalateOracle = async (question: string): Promise<ChatResponse
 // Streaming version for real-time responses
 export const queryOxalateOracleStreaming = async (
   question: string, 
-  callbacks: StreamingCallbacks
+  callbacks: StreamingCallbacks,
+  systemContext?: string
 ): Promise<void> => {
   try {
     // For now, simulate streaming by breaking down the response
-    const response = await queryOxalateOracle(question);
+    const response = await queryOxalateOracle(question, systemContext);
     
     if (response.text) {
       const words = response.text.split(' ');

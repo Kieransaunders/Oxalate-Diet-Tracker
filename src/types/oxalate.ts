@@ -21,17 +21,32 @@ export interface FilterState {
   sortDirection: 'asc' | 'desc';
 }
 
+export interface DataSourceInfo {
+  isLive: boolean;
+  count: number;
+  source: string;
+  description: string;
+}
+
 export interface OxalateStore {
   foods: OxalateFoodItem[];
   filteredFoods: OxalateFoodItem[];
   filters: FilterState;
   isLoading: boolean;
   error: string | null;
+  lastSyncTime: number | null;
+  isOnline: boolean;
   
   // Actions
-  fetchFoods: () => Promise<void>;
+  fetchFoods: (forceRefresh?: boolean) => Promise<void>;
   setSearch: (search: string) => void;
   toggleCategory: (category: OxalateCategory) => void;
   setSorting: (sortBy: 'name' | 'oxalate' | 'category', direction?: 'asc' | 'desc') => void;
   applyFilters: () => void;
+  searchFoodsAdvanced: (searchTerm: string) => Promise<void>;
+  checkNetworkStatus: () => Promise<boolean>;
+  
+  // Data source info
+  isUsingLiveData: () => boolean;
+  getDataSourceInfo: () => DataSourceInfo;
 }

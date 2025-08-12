@@ -11,6 +11,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRecipeStore } from '../state/recipeStore';
+import { useMealStore } from '../state/mealStore';
+import { useOxalateStore } from '../state/oxalateStore';
 import { getCategoryColor, getCategoryBackgroundColor } from '../api/oxalate-api';
 import { cn } from '../utils/cn';
 import RecipeGeneratorScreen from './RecipeGeneratorScreen';
@@ -39,12 +41,45 @@ const RecipesScreen: React.FC<RecipesScreenProps> = ({ onClose }) => {
     deleteRecipe,
     getFilteredRecipes,
   } = useRecipeStore();
+  
+  const { addRecipeIngredients } = useMealStore();
+  const { foods } = useOxalateStore();
 
   const filteredRecipes = getFilteredRecipes();
 
   const handleRecipePress = (recipe: Recipe) => {
     setSelectedRecipe(recipe);
     setShowRecipeModal(true);
+  };
+
+  const handleAddToTracker = (recipe: Recipe) => {
+    try {
+      const result = addRecipeIngredients({
+        title: recipe.title,
+        ingredients: recipe.ingredients,
+        servings: recipe.servings
+      }, foods);
+
+      let message = `Added ${result.added} ingredients from "${recipe.title}" to your daily tracker!`;
+      if (result.totalOxalate > 0) {
+        message += `\n\nTotal oxalate: ${result.totalOxalate.toFixed(1)}mg`;
+      }
+      if (result.notFound.length > 0) {
+        message += `\n\nNote: ${result.notFound.length} ingredients couldn't be found in the food database: ${result.notFound.join(', ')}`;
+      }
+
+      Alert.alert(
+        'Ingredients Added to Tracker',
+        message,
+        [{ text: 'OK' }]
+      );
+    } catch (error) {
+      Alert.alert(
+        'Error',
+        'Failed to add ingredients to tracker. Please try again.',
+        [{ text: 'OK' }]
+      );
+    }
   };
 
   const handleDeleteRecipe = (recipe: Recipe) => {
@@ -98,6 +133,13 @@ const RecipesScreen: React.FC<RecipesScreenProps> = ({ onClose }) => {
             </View>
             
             <View className="flex-row items-center space-x-2">
+              <Pressable
+                onPress={() => handleAddToTracker(recipe)}
+                className="bg-blue-500 px-2 py-1 rounded"
+              >
+                <Text className="text-white text-xs font-medium">Add to Tracker</Text>
+              </Pressable>
+              
               <Pressable
                 onPress={() => toggleFavorite(recipe.id)}
                 className="p-1"
@@ -261,9 +303,7 @@ const RecipesScreen: React.FC<RecipesScreenProps> = ({ onClose }) => {
                     How to Save Recipes
                   </Text>
                   <Text className="text-green-700 text-xs leading-4">
-                    1. Tap the green ➕ button to generate recipes{'\n'}
-                    2. Or ask the AI Assistant for recipes{'\n'}
-                    3. All recipes include calculated oxalate content
+                    {"1. Tap the green ➕ button to generate recipes\n2. Or ask the AI Assistant for recipes\n3. All recipes include calculated oxalate content"}
                   </Text>
                 </View>
               </View>
@@ -377,7 +417,14 @@ const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({ recipe, visible, 
               )}
             </View>
             
-            <View className="flex-row items-center space-x-3">
+            <View className="flex-row items-center space-x-2">
+              <Pressable
+                onPress={() => handleAddToTracker(recipe)}
+                className="bg-blue-500 px-3 py-2 rounded-lg"
+              >
+                <Text className="text-white text-sm font-medium">Add to Tracker</Text>
+              </Pressable>
+              
               <Pressable
                 onPress={() => toggleFavorite(recipe.id)}
                 className="w-10 h-10 items-center justify-center rounded-full bg-gray-100"

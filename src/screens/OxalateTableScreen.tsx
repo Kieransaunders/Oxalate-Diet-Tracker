@@ -9,11 +9,13 @@ import {
   Alert,
   Keyboard,
   Modal,
+  RefreshControl,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useOxalateStore } from '../state/oxalateStore';
 import { useMealStore } from '../state/mealStore';
+import { useOracleStore } from '../state/oracleStore';
 import { getCategoryColor, getCategoryBackgroundColor, getCategoryBorderColor } from '../api/oxalate-api';
 import { cn } from '../utils/cn';
 import NutritionModal from '../components/NutritionModal';
@@ -21,6 +23,7 @@ import MealTracker from '../components/MealTracker';
 import OracleScreen from './OracleScreen';
 import BottomNavigation from '../components/BottomNavigation';
 import RecipesScreen from './RecipesScreen';
+import SettingsScreen from './SettingsScreen';
 import type { OxalateCategory, OxalateFoodItem } from '../types/oxalate';
 
 const OxalateTableScreen = () => {
@@ -30,6 +33,7 @@ const OxalateTableScreen = () => {
   const [showMealTracker, setShowMealTracker] = useState(false);
   const [showOracle, setShowOracle] = useState(false);
   const [showRecipes, setShowRecipes] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [oracleContextFood, setOracleContextFood] = useState<string | undefined>(undefined);
   const [groupByCategory, setGroupByCategory] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
@@ -43,9 +47,12 @@ const OxalateTableScreen = () => {
     setSearch,
     toggleCategory,
     setSorting,
+
+    isOnline,
   } = useOxalateStore();
 
   const { addMealItem, currentDay } = useMealStore();
+  const { clearChat } = useOracleStore();
 
   const openNutritionModal = (food: OxalateFoodItem) => {
     setSelectedFood(food);
@@ -85,6 +92,7 @@ const OxalateTableScreen = () => {
   };
 
   const openOracleForFood = (foodName: string) => {
+    clearChat(); // Clear the chat window when opening Oracle
     setOracleContextFood(foodName);
     setShowOracle(true);
   };
@@ -312,18 +320,23 @@ const OxalateTableScreen = () => {
     <View className="flex-1 bg-white" style={{ paddingTop: insets.top }}>
       {/* Header */}
       <View className="bg-white px-4 py-6 border-b border-gray-200">
-        <Text className="text-2xl font-bold text-gray-900 mb-2">
-          Low-Oxalate Foods
-        </Text>
+        <View className="flex-row items-start justify-between mb-2">
+          <View className="flex-1">
+            <Text className="text-2xl font-bold text-gray-900">
+              Low-Oxalate Foods
+            </Text>
+          </View>
+          <Pressable
+            onPress={() => setShowSettings(true)}
+            className="w-10 h-10 items-center justify-center rounded-full bg-gray-100 ml-4"
+          >
+            <Ionicons name="settings-outline" size={20} color="#374151" />
+          </Pressable>
+        </View>
         <Text className="text-gray-600">
           Traffic-light system for oxalate content
         </Text>
-        {/* Show demo data indicator */}
-        <View className="bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 mt-2">
-          <Text className="text-blue-800 text-sm font-medium">
-            📋 Demo Data - Comprehensive food database with 33 foods
-          </Text>
-        </View>
+
       </View>
 
       {/* Search Bar */}
@@ -384,7 +397,18 @@ const OxalateTableScreen = () => {
         </View>
       ) : groupByCategory ? (
         // Grouped View
-        <ScrollView ref={scrollViewRef} className="flex-1" showsVerticalScrollIndicator={false}>
+        <ScrollView 
+          ref={scrollViewRef} 
+          className="flex-1" 
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={isLoading}
+              onRefresh={() => fetchFoods(true)}
+              tintColor="#16a34a"
+            />
+          }
+        >
           {groupedFoods?.map((group) => (
             <View key={group.name} className="mb-4">
               {/* Group Header */}
@@ -417,7 +441,18 @@ const OxalateTableScreen = () => {
         </ScrollView>
       ) : (
         // List View
-        <ScrollView ref={scrollViewRef} className="flex-1" showsVerticalScrollIndicator={false}>
+        <ScrollView 
+          ref={scrollViewRef} 
+          className="flex-1" 
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={isLoading}
+              onRefresh={() => fetchFoods(true)}
+              tintColor="#16a34a"
+            />
+          }
+        >
           {renderHeader()}
           {filteredFoods.map(renderFoodRow)}
           
@@ -451,7 +486,10 @@ const OxalateTableScreen = () => {
       <BottomNavigation
         onFoodsPress={handleFoodsTabPress}
         onRecipesPress={() => setShowRecipes(true)}
-        onChatPress={() => setShowOracle(true)}
+        onChatPress={() => {
+          setOracleContextFood(undefined);
+          setShowOracle(true);
+        }}
         onTrackerPress={() => setShowMealTracker(true)}
         activeTab="foods"
       />
@@ -459,7 +497,10 @@ const OxalateTableScreen = () => {
       {/* Oracle Screen Modal */}
       <OracleScreen
         visible={showOracle}
-        onClose={() => setShowOracle(false)}
+        onClose={() => {
+          setShowOracle(false);
+          setOracleContextFood(undefined);
+        }}
         contextFood={oracleContextFood}
       />
 
@@ -472,6 +513,12 @@ const OxalateTableScreen = () => {
       >
         <RecipesScreen onClose={() => setShowRecipes(false)} />
       </Modal>
+
+      {/* Settings Screen */}
+      <SettingsScreen 
+        visible={showSettings}
+        onClose={() => setShowSettings(false)}
+      />
     </View>
   );
 };

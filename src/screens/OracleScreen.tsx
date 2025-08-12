@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useOracleStore } from '../state/oracleStore';
 import { useMealStore } from '../state/mealStore';
+import { useUserPreferencesStore } from '../state/userPreferencesStore';
 import { enhanceQuestionWithContext, quickOracleQuestions } from '../api/chat-oracle-api';
 import { cn } from '../utils/cn';
 
@@ -31,6 +32,23 @@ const OracleScreen: React.FC<OracleScreenProps> = ({ visible, onClose, contextFo
   
   const { messages, isLoading, streamingMessageId, sendMessageStreaming, clearChat } = useOracleStore();
   const { currentDay } = useMealStore();
+  const { userPreferences, getOracleSystemPrompt } = useUserPreferencesStore();
+
+  // Dynamic Oracle title based on user's diet type
+  const getOracleTitle = () => {
+    switch (userPreferences.dietType) {
+      case 'low-oxalate':
+        return 'Oxalate Oracle - Your Low-Oxalate Guide';
+      case 'moderate-oxalate':
+        return 'Oxalate Oracle - Your Balanced Guide';
+      case 'high-oxalate':
+        return 'Oxalate Oracle - Your Nutrition Guide';
+      case 'unrestricted':
+        return 'Oxalate Oracle - Your Wellness Guide';
+      default:
+        return 'Oxalate Oracle';
+    }
+  };
 
   useEffect(() => {
     if (visible && scrollViewRef.current) {
@@ -41,8 +59,23 @@ const OracleScreen: React.FC<OracleScreenProps> = ({ visible, onClose, contextFo
     }
   }, [messages, visible, isLoading]);
 
+  // Auto-ask question when opened with contextFood
+  useEffect(() => {
+    if (visible && contextFood && !isLoading && messages.length <= 1) {
+      // Only auto-ask if we haven't already asked about this food
+      const hasAskedAboutFood = messages.some(msg => 
+        msg.isUser && msg.text.toLowerCase().includes(contextFood.toLowerCase())
+      );
+      
+      if (!hasAskedAboutFood) {
+        const question = `Tell me about ${contextFood} - is it safe for my low-oxalate diet?`;
+        handleQuickQuestion(question);
+      }
+    }
+  }, [visible, contextFood, isLoading, messages.length]);
+
   const handleSendMessage = async () => {
-    if (inputText.trim()) {
+    if (inputText.trim() && !isLoading) {
       let messageText = inputText.trim();
       
       // Add context about current meal and viewed food
@@ -56,6 +89,8 @@ const OracleScreen: React.FC<OracleScreenProps> = ({ visible, onClose, contextFo
   };
 
   const handleQuickQuestion = async (question: string) => {
+    if (isLoading) return;
+    
     // Add context to quick questions
     const contextualQuestion = enhanceQuestionWithContext(question, currentDay.items, contextFood);
     
@@ -75,7 +110,7 @@ const OracleScreen: React.FC<OracleScreenProps> = ({ visible, onClose, contextFo
     
     return (
       <View
-        key={message.id}
+        key={`${message.id}-${index}`}
         className={cn(
           "mb-4 px-4",
           message.isUser ? "items-end" : "items-start"
@@ -164,7 +199,7 @@ const OracleScreen: React.FC<OracleScreenProps> = ({ visible, onClose, contextFo
                 <Text className="text-3xl mr-3">🔮</Text>
                 <View>
                   <Text className="text-xl font-bold text-white">
-                    Oxalate Oracle
+                    {getOracleTitle()}
                   </Text>
                   <Text className="text-purple-100 text-sm">
                     {contextFood 
@@ -219,7 +254,7 @@ const OracleScreen: React.FC<OracleScreenProps> = ({ visible, onClose, contextFo
           keyboardShouldPersistTaps="handled"
         >
           <View className="py-4">
-            {messages.map(renderMessage)}
+            {messages.map((message, index) => renderMessage(message, index))}
             {renderTypingIndicator()}
           </View>
 

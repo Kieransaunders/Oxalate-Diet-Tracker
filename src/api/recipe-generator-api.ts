@@ -26,13 +26,15 @@ export const setOfflineMode = (offline: boolean) => {
 
 export const isInOfflineMode = () => isOfflineMode;
 
-export const generateRecipe = async (request: RecipeGenerationRequest, retryCount = 0): Promise<RecipeGenerationResponse> => {
+export const generateRecipe = async (request: RecipeGenerationRequest, existingRecipes: string[] = [], retryCount = 0): Promise<RecipeGenerationResponse> => {
   // If offline mode is enabled, go straight to fallback
   if (isOfflineMode) {
     return getFallbackRecipe(request);
   }
   
   const maxRetries = 1; // Reduced retries for faster fallback
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
   
   try {
     // Construct a detailed prompt for recipe generation
@@ -43,6 +45,10 @@ export const generateRecipe = async (request: RecipeGenerationRequest, retryCoun
     
     if (request.dietaryRestrictions?.includes('low-oxalate')) {
       constraints.push('must be low-oxalate (under 10mg oxalate per serving)');
+    } else if (request.dietaryRestrictions?.includes('medium-oxalate')) {
+      constraints.push('must be medium-oxalate (10-40mg oxalate per serving)');
+    } else if (request.dietaryRestrictions?.includes('high-oxalate')) {
+      constraints.push('must be high-oxalate (40mg+ oxalate per serving)');
     }
     
     if (request.mealType) {
@@ -72,6 +78,11 @@ export const generateRecipe = async (request: RecipeGenerationRequest, retryCoun
     // Enhance the prompt with constraints
     if (constraints.length > 0) {
       prompt += `. The recipe ${constraints.join(', ')}.`;
+    }
+    
+    // Add existing recipe exclusion
+    if (existingRecipes.length > 0) {
+      prompt += ` Please create something different from these existing recipes: ${existingRecipes.slice(0, 5).join(', ')}.`;
     }
     
     // Add specific formatting request
@@ -140,12 +151,13 @@ export const generateRecipe = async (request: RecipeGenerationRequest, retryCoun
     return { text: JSON.stringify(result) };
     
   } catch (error) {
+    clearTimeout(timeoutId); // Clear timeout on any error
     console.error('Recipe Generation API Error:', error);
     
     // Handle AbortError specifically
     if (error instanceof Error && (error.name === 'AbortError' || error.message.includes('aborted'))) {
       console.log('Request timed out, using fallback recipe');
-      return getFallbackRecipe(request);
+      return getFallbackRecipe(request, existingRecipes);
     }
     
     // Retry logic for other errors
@@ -155,14 +167,14 @@ export const generateRecipe = async (request: RecipeGenerationRequest, retryCoun
           error.message.includes('fetch')) {
         console.log(`Retrying... Attempt ${retryCount + 1} of ${maxRetries}`);
         await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1))); // Reduced backoff time
-        return generateRecipe(request, retryCount + 1);
+        return generateRecipe(request, existingRecipes, retryCount + 1);
       }
     }
     
     // If all retries failed or non-retryable error, return fallback
     if (retryCount >= maxRetries) {
       console.log('Max retries reached, using fallback recipe');
-      return getFallbackRecipe(request);
+      return getFallbackRecipe(request, existingRecipes);
     }
     
     // For other errors, try fallback
@@ -170,7 +182,7 @@ export const generateRecipe = async (request: RecipeGenerationRequest, retryCoun
         (error.message.includes('temporarily unavailable') ||
          error.message.includes('503') ||
          error.message.includes('502'))) {
-      return getFallbackRecipe(request);
+      return getFallbackRecipe(request, existingRecipes);
     }
     
     return { 
@@ -428,6 +440,100 @@ const fallbackRecipes = {
 6. Serve immediately
 
 **Tips:** Use butter lettuce for best cups. Make tuna salad ahead for meal prep.`
+    },
+    {
+      title: "Chicken Caesar Salad",
+      content: `# Chicken Caesar Salad
+
+**Servings:** 2
+**Prep Time:** 15 minutes
+**Cook Time:** 10 minutes
+**Difficulty:** Easy
+**Oxalate per serving:** 4mg
+
+## Ingredients:
+- 2 chicken breasts (5oz each)
+- 1 head romaine lettuce, chopped
+- 1/4 cup Caesar dressing
+- 1/4 cup parmesan cheese, grated
+- 2 tablespoons olive oil
+- 1 clove garlic, minced
+- Salt and pepper to taste
+
+## Instructions:
+1. Season chicken with salt, pepper, and garlic
+2. Heat olive oil in a pan over medium-high heat
+3. Cook chicken 6-7 minutes per side until done
+4. Let rest 5 minutes, then slice
+5. Toss romaine with Caesar dressing
+6. Top with sliced chicken and parmesan
+7. Serve immediately
+
+**Tips:** Use pre-cooked chicken for faster prep. Add croutons if desired.`
+    },
+    {
+      title: "Beef and Vegetable Stir Fry",
+      content: `# Beef and Vegetable Stir Fry
+
+**Servings:** 3
+**Prep Time:** 15 minutes
+**Cook Time:** 10 minutes
+**Difficulty:** Medium
+**Oxalate per serving:** 5mg
+
+## Ingredients:
+- 1 lb beef sirloin, sliced thin
+- 2 tablespoons vegetable oil
+- 1 bell pepper, sliced
+- 1 cup broccoli florets
+- 2 cloves garlic, minced
+- 2 tablespoons soy sauce
+- 1 tablespoon oyster sauce
+- 1 teaspoon cornstarch
+- Cooked rice for serving
+
+## Instructions:
+1. Mix cornstarch with 2 tablespoons water
+2. Heat oil in a large pan or wok over high heat
+3. Add beef and cook 2-3 minutes until browned
+4. Add vegetables and garlic, stir fry 3-4 minutes
+5. Add sauces and cornstarch mixture
+6. Stir fry 1-2 minutes until sauce thickens
+7. Serve over rice
+
+**Tips:** Keep heat high for best stir fry texture. Don't overcrowd the pan.`
+    },
+    {
+      title: "Mediterranean Quinoa Bowl",
+      content: `# Mediterranean Quinoa Bowl
+
+**Servings:** 2
+**Prep Time:** 10 minutes
+**Cook Time:** 15 minutes
+**Difficulty:** Easy
+**Oxalate per serving:** 6mg
+
+## Ingredients:
+- 1 cup cooked quinoa
+- 1/2 cucumber, diced
+- 1 cup cherry tomatoes, halved
+- 1/4 red onion, sliced thin
+- 1/4 cup feta cheese, crumbled
+- 2 tablespoons olive oil
+- 1 tablespoon lemon juice
+- 1 teaspoon dried oregano
+- Salt and pepper to taste
+
+## Instructions:
+1. Cook quinoa according to package directions
+2. Let quinoa cool slightly
+3. Mix olive oil, lemon juice, and oregano for dressing
+4. Combine quinoa with vegetables in bowls
+5. Top with feta cheese
+6. Drizzle with dressing
+7. Season with salt and pepper
+
+**Tips:** Use pre-cooked quinoa for faster prep. Add grilled chicken for extra protein.`
     }
   ],
   dinner: [
@@ -530,12 +636,23 @@ const fallbackRecipes = {
 };
 
 // Get a fallback recipe when API is unavailable
-const getFallbackRecipe = (request: RecipeGenerationRequest): RecipeGenerationResponse => {
+const getFallbackRecipe = (request: RecipeGenerationRequest, existingRecipes: string[] = []): RecipeGenerationResponse => {
   const mealType = request.mealType || 'dinner';
   const recipes = fallbackRecipes[mealType] || fallbackRecipes.dinner;
   
-  // Select a random recipe from the category
-  const randomRecipe = recipes[Math.floor(Math.random() * recipes.length)];
+  // Filter out recipes that already exist
+  const availableRecipes = recipes.filter(recipe => 
+    !existingRecipes.some(existingTitle => 
+      existingTitle.toLowerCase().includes(recipe.title.toLowerCase()) ||
+      recipe.title.toLowerCase().includes(existingTitle.toLowerCase())
+    )
+  );
+  
+  // If no unique recipes available, use all recipes
+  const recipesToChooseFrom = availableRecipes.length > 0 ? availableRecipes : recipes;
+  
+  // Select a random recipe from the available category
+  const randomRecipe = recipesToChooseFrom[Math.floor(Math.random() * recipesToChooseFrom.length)];
   
   // Add a note that this is a fallback recipe
   const fallbackNote = `\n\n**✨ Curated Recipe:** This is a chef-tested low-oxalate recipe from our collection. Perfect for when you want a reliable, delicious meal!`;

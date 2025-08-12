@@ -13,6 +13,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { generateRecipe, quickRecipePrompts, parseRecipeResponse, RecipeGenerationRequest, setOfflineMode, isInOfflineMode } from '../api/recipe-generator-api';
 import { useRecipeStore } from '../state/recipeStore';
+import { useMealStore } from '../state/mealStore';
+import { useOxalateStore } from '../state/oxalateStore';
 import { getOxalateCategory } from '../api/oxalate-api';
 import { cn } from '../utils/cn';
 
@@ -31,12 +33,50 @@ const RecipeGeneratorScreen: React.FC<RecipeGeneratorScreenProps> = ({ visible, 
   const [lastError, setLastError] = useState<string | null>(null);
   const [isRetrying, setIsRetrying] = useState(false);
   const [selectedDifficulty, setSelectedDifficulty] = useState<'easy' | 'medium' | 'hard' | undefined>();
+  const [selectedOxalateLevel, setSelectedOxalateLevel] = useState<'low' | 'medium' | 'high' | undefined>('low');
   const [servings, setServings] = useState('4');
   const [cookingTime, setCookingTime] = useState('');
   const [showCustomForm, setShowCustomForm] = useState(true);
   const [offlineMode, setOfflineModeState] = useState(isInOfflineMode());
   
-  const { addRecipe } = useRecipeStore();
+  const { addRecipe, recipes } = useRecipeStore();
+  const { addRecipeIngredients } = useMealStore();
+  const { foods } = useOxalateStore();
+
+  const handleAddToTracker = () => {
+    if (!generatedRecipe) return;
+
+    try {
+      // Parse the generated recipe text to extract ingredients
+      const parsed = parseRecipeResponse(generatedRecipe);
+      
+      const result = addRecipeIngredients({
+        title: parsed.title,
+        ingredients: parsed.ingredients,
+        servings: parsed.servings
+      }, foods);
+
+      let message = `Added ${result.added} ingredients to your daily tracker!`;
+      if (result.totalOxalate > 0) {
+        message += `\n\nTotal oxalate: ${result.totalOxalate.toFixed(1)}mg`;
+      }
+      if (result.notFound.length > 0) {
+        message += `\n\nNote: ${result.notFound.length} ingredients couldn't be found in the food database: ${result.notFound.join(', ')}`;
+      }
+
+      Alert.alert(
+        'Ingredients Added to Tracker',
+        message,
+        [{ text: 'OK' }]
+      );
+    } catch (error) {
+      Alert.alert(
+        'Error',
+        'Failed to add ingredients to tracker. Please try again.',
+        [{ text: 'OK' }]
+      );
+    }
+  };
 
   const handleQuickRecipe = async (prompt: any) => {
     setIsGenerating(true);
@@ -51,10 +91,13 @@ const RecipeGeneratorScreen: React.FC<RecipeGeneratorScreenProps> = ({ visible, 
         servings: prompt.servings,
         cookingTime: prompt.cookingTime,
         difficulty: prompt.difficulty,
-        dietaryRestrictions: prompt.dietaryRestrictions,
+        dietaryRestrictions: selectedOxalateLevel ? [`${selectedOxalateLevel}-oxalate`] : prompt.dietaryRestrictions,
       };
       
-      const response = await generateRecipe(request);
+      // Get existing recipe titles to avoid duplicates
+      const existingTitles = recipes.map(recipe => recipe.title);
+      
+      const response = await generateRecipe(request, existingTitles);
       
       if (response.text) {
         setGeneratedRecipe(response.text);
@@ -96,10 +139,13 @@ const RecipeGeneratorScreen: React.FC<RecipeGeneratorScreenProps> = ({ visible, 
         servings: parseInt(servings) || 4,
         cookingTime: parseInt(cookingTime) || undefined,
         difficulty: selectedDifficulty,
-        dietaryRestrictions: ['low-oxalate'],
+        dietaryRestrictions: selectedOxalateLevel ? [`${selectedOxalateLevel}-oxalate`] : ['low-oxalate'],
       };
       
-      const response = await generateRecipe(request);
+      // Get existing recipe titles to avoid duplicates
+      const existingTitles = recipes.map(recipe => recipe.title);
+      
+      const response = await generateRecipe(request, existingTitles);
       
       if (response.text) {
         setGeneratedRecipe(response.text);
@@ -194,66 +240,26 @@ const RecipeGeneratorScreen: React.FC<RecipeGeneratorScreenProps> = ({ visible, 
           </View>
         </View>
 
+        {/* Loading State - Fixed at Top */}
+        {isGenerating && (
+          <View className="bg-green-100 border-b border-green-200 px-4 py-3">
+            <View className="flex-row items-center">
+              <ActivityIndicator size="small" color="#22c55e" />
+              <View className="flex-1 ml-3">
+                <Text className="text-green-900 font-medium text-sm">
+                  Creating your perfect recipe...
+                </Text>
+                <Text className="text-green-700 text-xs">
+                  If this takes too long, we'll serve you a curated recipe instead
+                </Text>
+              </View>
+            </View>
+          </View>
+        )}
+
         <ScrollView className="flex-1 px-4 py-4" showsVerticalScrollIndicator={false}>
           {!generatedRecipe ? (
             <>
-              {/* Help Text */}
-              <View className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                <View className="flex-row items-start">
-                  <Ionicons name="bulb" size={20} color="#3b82f6" />
-                  <View className="flex-1 ml-3">
-                    <Text className="text-blue-900 font-medium text-sm mb-1">
-                      Generate Perfect Low-Oxalate Recipes
-                    </Text>
-                    <Text className="text-blue-700 text-xs leading-4">
-                      Choose a quick option below or create a custom recipe. All recipes are optimized for low-oxalate diets and include calculated oxalate content.
-                    </Text>
-                  </View>
-                </View>
-              </View>
-
-              {/* Offline Mode Toggle */}
-              <View className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-6">
-                <View className="flex-row items-center justify-between">
-                  <View className="flex-1">
-                    <Text className="text-orange-900 font-medium text-sm">Offline Mode</Text>
-                    <Text className="text-orange-700 text-xs">Use pre-made recipes if AI is unavailable</Text>
-                  </View>
-                  <Pressable
-                    onPress={() => {
-                      const newOfflineMode = !offlineMode;
-                      setOfflineModeState(newOfflineMode);
-                      setOfflineMode(newOfflineMode);
-                    }}
-                    className={cn(
-                      "w-12 h-6 rounded-full border-2",
-                      offlineMode ? "bg-orange-400 border-orange-400" : "bg-gray-200 border-gray-300"
-                    )}
-                  >
-                    <View className={cn(
-                      "w-4 h-4 rounded-full bg-white transition-all",
-                      offlineMode ? "ml-6" : "ml-0"
-                    )} />
-                  </Pressable>
-                </View>
-              </View>
-
-              {/* Quick Recipe Options */}
-              <View className="mb-6">
-                <View className="flex-row items-center justify-between mb-3">
-                  <Text className="text-lg font-bold text-gray-900">Quick Recipe Ideas</Text>
-                  {!showCustomForm && (
-                    <Pressable
-                      onPress={() => setShowCustomForm(true)}
-                      className="bg-blue-100 px-3 py-1 rounded-lg"
-                    >
-                      <Text className="text-blue-700 text-sm font-medium">Custom Recipe</Text>
-                    </Pressable>
-                  )}
-                </View>
-                {quickRecipePrompts.map(renderQuickPrompt)}
-              </View>
-
               {/* Custom Recipe Generator */}
               {showCustomForm && (
                 <View className="bg-white rounded-lg p-4 mb-6">
@@ -292,6 +298,40 @@ const RecipeGeneratorScreen: React.FC<RecipeGeneratorScreenProps> = ({ visible, 
                           selectedMealType === type ? "text-green-700" : "text-gray-600"
                         )}>
                           {type}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                </View>
+
+                {/* Oxalate Level */}
+                <View className="mb-4">
+                  <Text className="font-medium text-gray-700 mb-2">Oxalate Level</Text>
+                  <View className="flex-row flex-wrap">
+                    {(['low', 'medium', 'high'] as const).map((level) => (
+                      <Pressable
+                        key={level}
+                        onPress={() => setSelectedOxalateLevel(selectedOxalateLevel === level ? undefined : level)}
+                        className={cn(
+                          "px-4 py-2 rounded-full mr-2 mb-2 border",
+                          selectedOxalateLevel === level
+                            ? level === 'low' ? "bg-green-100 border-green-300"
+                            : level === 'medium' ? "bg-yellow-100 border-yellow-300"
+                            : "bg-red-100 border-red-300"
+                            : "bg-gray-100 border-gray-300"
+                        )}
+                      >
+                        <Text className={cn(
+                          "text-sm font-medium capitalize",
+                          selectedOxalateLevel === level
+                            ? level === 'low' ? "text-green-700"
+                            : level === 'medium' ? "text-yellow-700"
+                            : "text-red-700"
+                            : "text-gray-600"
+                        )}>
+                          {level === 'low' ? '🟢 Low (0-10mg)' 
+                           : level === 'medium' ? '🟡 Medium (10-40mg)'
+                           : '🔴 High (40mg+)'} oxalate
                         </Text>
                       </Pressable>
                     ))}
@@ -348,7 +388,64 @@ const RecipeGeneratorScreen: React.FC<RecipeGeneratorScreenProps> = ({ visible, 
                 </Pressable>
               </View>
               )}
-            </>
+
+              {/* Quick Recipe Options */}
+              <View className="mb-6">
+                <View className="flex-row items-center justify-between mb-3">
+                  <Text className="text-lg font-bold text-gray-900">Quick Recipe Ideas</Text>
+                  {!showCustomForm && (
+                    <Pressable
+                      onPress={() => setShowCustomForm(true)}
+                      className="bg-blue-100 px-3 py-1 rounded-lg"
+                    >
+                      <Text className="text-blue-700 text-sm font-medium">Custom Recipe</Text>
+                    </Pressable>
+                  )}
+                </View>
+                {quickRecipePrompts.map(renderQuickPrompt)}
+              </View>
+
+              {/* Help Text */}
+              <View className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                <View className="flex-row items-start">
+                  <Ionicons name="bulb" size={20} color="#3b82f6" />
+                  <View className="flex-1 ml-3">
+                    <Text className="text-blue-900 font-medium text-sm mb-1">
+                      Generate Custom Oxalate Recipes
+                    </Text>
+                    <Text className="text-blue-700 text-xs leading-4">
+                      Choose a quick option below or create a custom recipe. Generate low, medium, or high oxalate recipes with calculated oxalate content per serving.
+                    </Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* Offline Mode Toggle */}
+              <View className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-6">
+                <View className="flex-row items-center justify-between">
+                  <View className="flex-1">
+                    <Text className="text-orange-900 font-medium text-sm">Offline Mode</Text>
+                    <Text className="text-orange-700 text-xs">Use pre-made recipes if AI is unavailable</Text>
+                  </View>
+                  <Pressable
+                    onPress={() => {
+                      const newOfflineMode = !offlineMode;
+                      setOfflineModeState(newOfflineMode);
+                      setOfflineMode(newOfflineMode);
+                    }}
+                    className={cn(
+                      "w-12 h-6 rounded-full border-2",
+                      offlineMode ? "bg-orange-400 border-orange-400" : "bg-gray-200 border-gray-300"
+                    )}
+                  >
+                    <View className={cn(
+                      "w-4 h-4 rounded-full bg-white transition-all",
+                      offlineMode ? "ml-6" : "ml-0"
+                    )} />
+                  </Pressable>
+                </View>
+              </View>
+            </> // Added closing fragment tag here
           ) : (
             /* Generated Recipe Display */
             <View className="bg-white rounded-lg p-4 mb-6">
@@ -367,6 +464,13 @@ const RecipeGeneratorScreen: React.FC<RecipeGeneratorScreenProps> = ({ visible, 
                   </Pressable>
                   
                   <Pressable
+                    onPress={handleAddToTracker}
+                    className="bg-blue-500 px-3 py-2 rounded-lg mr-2"
+                  >
+                    <Text className="text-white font-medium text-sm">Add to Tracker</Text>
+                  </Pressable>
+                  
+                  <Pressable
                     onPress={handleSaveRecipe}
                     className="bg-green-500 px-4 py-2 rounded-lg"
                   >
@@ -381,18 +485,6 @@ const RecipeGeneratorScreen: React.FC<RecipeGeneratorScreenProps> = ({ visible, 
             </View>
           )}
 
-          {/* Loading State */}
-          {isGenerating && (
-            <View className="bg-white rounded-lg p-6 items-center">
-              <ActivityIndicator size="large" color="#22c55e" />
-              <Text className="text-gray-600 mt-3 font-medium">
-                Creating your perfect recipe...
-              </Text>
-              <Text className="text-gray-500 text-sm mt-1">
-                If this takes too long, we'll serve you a curated recipe instead
-              </Text>
-            </View>
-          )}
 
           {/* Error State */}
           {lastError && !isGenerating && (

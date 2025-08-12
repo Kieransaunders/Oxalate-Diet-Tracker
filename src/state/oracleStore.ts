@@ -11,8 +11,8 @@ interface OracleStore {
   
   // Actions
   addMessage: (text: string, isUser: boolean) => void;
-  sendMessage: (text: string) => Promise<void>;
-  sendMessageStreaming: (text: string) => Promise<void>;
+  sendMessage: (text: string, systemContext?: string) => Promise<void>;
+  sendMessageStreaming: (text: string, systemContext?: string) => Promise<void>;
   clearChat: () => void;
   setLoading: (loading: boolean) => void;
 }
@@ -33,7 +33,7 @@ export const useOracleStore = create<OracleStore>()(
 
       addMessage: (text: string, isUser: boolean) => {
         const newMessage: ChatMessage = {
-          id: Date.now().toString(),
+          id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
           text,
           isUser,
           timestamp: Date.now(),
@@ -75,13 +75,18 @@ export const useOracleStore = create<OracleStore>()(
       },
 
       sendMessageStreaming: async (text: string) => {
-        const { addMessage } = get();
+        const { addMessage, isLoading, streamingMessageId } = get();
+        
+        // Prevent duplicate requests
+        if (isLoading || streamingMessageId) {
+          return;
+        }
         
         // Add user message
         addMessage(text, true);
         
         // Create empty Oracle message for streaming
-        const oracleMessageId = Date.now().toString();
+        const oracleMessageId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         const oracleMessage: ChatMessage = {
           id: oracleMessageId,
           text: '',
@@ -127,7 +132,7 @@ export const useOracleStore = create<OracleStore>()(
                 messages: [
                   ...state.messages.filter(msg => msg.id !== oracleMessageId),
                   {
-                    id: Date.now().toString(),
+                    id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
                     text: wisdom,
                     isUser: false,
                     timestamp: Date.now(),
@@ -145,7 +150,7 @@ export const useOracleStore = create<OracleStore>()(
             messages: [
               ...state.messages.filter(msg => msg.id !== oracleMessageId),
               {
-                id: Date.now().toString(),
+                id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
                 text: wisdom,
                 isUser: false,
                 timestamp: Date.now(),

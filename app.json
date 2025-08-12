@@ -1,17 +1,45 @@
 {
   "expo": {
-    "name": "vibecode",
-    "slug": "vibecode",
-    "scheme": "vibecode",
+    "name": "Oxalate Diet Tracker",
+    "slug": "oxalate-diet-tracker",
+    "scheme": "oxalate-diet-tracker",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
+    "icon": "./Assets/icons/icon.png",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "uk.co.iconnectit.oxolatediettracker",
+      "appleTeamId": "QHS5TSHJA5",
+      "requireFullScreen": true,
+      "infoPlist": {
+        "UISupportedInterfaceOrientations": [
+          "UIInterfaceOrientationPortrait"
+        ],
+        "UISupportedInterfaceOrientations~ipad": [
+          "UIInterfaceOrientationPortrait",
+          "UIInterfaceOrientationPortraitUpsideDown"
+        ],
+        "NSCalendarsUsageDescription": "This app does not use calendar functionality",
+        "NSRemindersUsageDescription": "This app does not use reminders functionality"
+      }
     },
     "android": {
-      "edgeToEdgeEnabled": true
-    }
+      "edgeToEdgeEnabled": true,
+      "package": "uk.co.iconnectit.oxolatediettracker"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "e1cc0f1e-62f6-4a20-bef5-b72644974925"
+      }
+    },
+    "plugins": [
+      "expo-asset",
+      "expo-build-properties",
+      "expo-font",
+      "expo-sqlite",
+      "expo-web-browser"
+    ]
   }
 }
