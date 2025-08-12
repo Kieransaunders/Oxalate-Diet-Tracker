@@ -28,8 +28,8 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <NavigationContainer>
-        <OxalateTableScreen />
         <StatusBar style="auto" />
+        <OxalateTableScreen />
       </NavigationContainer>
     </SafeAreaProvider>
   );

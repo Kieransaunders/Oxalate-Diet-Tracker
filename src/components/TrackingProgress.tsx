@@ -13,9 +13,11 @@ import { cn } from '../utils/cn';
 interface TrackingProgressProps {
   onOpenTracker: () => void;
   hideDetailsButton?: boolean;
+  showEditLimit?: boolean;
+  onEditLimit?: () => void;
 }
 
-const TrackingProgress: React.FC<TrackingProgressProps> = ({ onOpenTracker, hideDetailsButton = false }) => {
+const TrackingProgress: React.FC<TrackingProgressProps> = ({ onOpenTracker, hideDetailsButton = false, showEditLimit = false, onEditLimit }) => {
   const { currentDay, mealHistory } = useMealStore();
   const { userPreferences } = useUserPreferencesStore();
 
@@ -94,13 +96,26 @@ const TrackingProgress: React.FC<TrackingProgressProps> = ({ onOpenTracker, hide
           <Text className="text-gray-600 text-sm">{getDietAwareMessage()}</Text>
         </View>
         <View className="items-end">
-          <Text 
-            className="text-xl font-bold"
-            style={{ color: isOverLimit ? '#ef4444' : getCategoryColor(currentCategory) }}
-          >
-            {currentDay.totalOxalate.toFixed(1)}
-          </Text>
-          <Text className="text-gray-500 text-sm">of {effectiveDailyLimit}mg</Text>
+          <View className="flex-row items-center">
+            <View className="items-end mr-3">
+              <Text 
+                className="text-xl font-bold"
+                style={{ color: isOverLimit ? '#ef4444' : getCategoryColor(currentCategory) }}
+              >
+                {currentDay.totalOxalate.toFixed(1)}
+              </Text>
+              <Text className="text-gray-500 text-sm">of {effectiveDailyLimit}mg</Text>
+            </View>
+            {showEditLimit && onEditLimit && (
+              <Pressable
+                onPress={onEditLimit}
+                className="flex-row items-center"
+              >
+                <Text className="text-blue-500 text-xs mr-1">Edit</Text>
+                <Ionicons name="settings-outline" size={14} color="#3b82f6" />
+              </Pressable>
+            )}
+          </View>
         </View>
       </View>
 

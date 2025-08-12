@@ -17,9 +17,10 @@ import TrackingProgress from './TrackingProgress';
 interface MealTrackerProps {
   visible: boolean;
   onClose: () => void;
+  onOpenSettings?: () => void;
 }
 
-const MealTracker: React.FC<MealTrackerProps> = ({ visible, onClose }) => {
+const MealTracker: React.FC<MealTrackerProps> = ({ visible, onClose, onOpenSettings }) => {
   const {
     currentDay,
     dailyLimit,
@@ -121,12 +122,22 @@ const MealTracker: React.FC<MealTrackerProps> = ({ visible, onClose }) => {
             <Text className="text-xl font-bold text-gray-900">Daily Tracker</Text>
             <Text className="text-gray-600">{currentDay.date}</Text>
           </View>
-          <Pressable
-            onPress={onClose}
-            className="w-8 h-8 items-center justify-center rounded-full bg-gray-100"
-          >
-            <Ionicons name="close" size={20} color="#6b7280" />
-          </Pressable>
+          <View className="flex-row items-center">
+            {onOpenSettings && (
+              <Pressable
+                onPress={onOpenSettings}
+                className="w-8 h-8 items-center justify-center rounded-full bg-gray-100 mr-3"
+              >
+                <Ionicons name="settings-outline" size={20} color="#6b7280" />
+              </Pressable>
+            )}
+            <Pressable
+              onPress={onClose}
+              className="w-8 h-8 items-center justify-center rounded-full bg-gray-100"
+            >
+              <Ionicons name="close" size={20} color="#6b7280" />
+            </Pressable>
+          </View>
         </View>
 
         <ScrollView className="flex-1 px-6 py-6">
@@ -150,65 +161,11 @@ const MealTracker: React.FC<MealTrackerProps> = ({ visible, onClose }) => {
             <TrackingProgress
               onOpenTracker={() => {}} // Empty since we're already in the tracker
               hideDetailsButton={true} // Hide the details button since we're in the tracker
+              showEditLimit={true} // Show edit limit button in tracker
+              onEditLimit={() => setShowLimitEditor(true)} // Handle edit limit press
             />
           </View>
 
-          {/* Daily Progress */}
-          <View className="mb-8">
-            <View className="flex-row items-center justify-between mb-2">
-              <Text className="text-lg font-semibold text-gray-900">Daily Progress</Text>
-              <Pressable
-                onPress={() => setShowLimitEditor(true)}
-                className="flex-row items-center"
-              >
-                <Text className="text-blue-500 text-sm mr-1">Edit Limit</Text>
-                <Ionicons name="settings-outline" size={16} color="#3b82f6" />
-              </Pressable>
-            </View>
-            
-            {/* Progress Bar */}
-            <View className="bg-gray-200 h-4 rounded-full mb-3">
-              <View
-                className="h-4 rounded-full"
-                style={{
-                  width: `${Math.min(progressPercentage, 100)}%`,
-                  backgroundColor: isOverLimit ? '#ef4444' : getCategoryColor(currentCategory),
-                }}
-              />
-            </View>
-            
-            <View className="flex-row justify-between items-center">
-              <Text 
-                className="font-bold text-lg"
-                style={{ color: isOverLimit ? '#ef4444' : getCategoryColor(currentCategory) }}
-              >
-                {currentDay.totalOxalate.toFixed(1)} mg
-              </Text>
-              <Text className="text-gray-600">
-                of {effectiveDailyLimit} mg limit
-              </Text>
-            </View>
-
-            {/* Diet-aware progress message */}
-            <View className="mt-3">
-              <Text className="text-sm text-gray-600 text-center">
-                {getDietAwareProgressMessage()}
-              </Text>
-            </View>
-
-            {/* Show warning only for restrictive diets */}
-            {isOverLimit && userPreferences.dietType !== 'unrestricted' && userPreferences.dietType !== 'high-oxalate' && (
-              <View className="bg-red-50 border border-red-200 rounded-lg p-3 mt-3">
-                <View className="flex-row items-center">
-                  <Ionicons name="warning" size={16} color="#ef4444" />
-                  <Text className="text-red-800 font-medium ml-2">Over Daily Limit</Text>
-                </View>
-                <Text className="text-red-700 text-sm mt-1">
-                  {getDietAwareProgressMessage()}
-                </Text>
-              </View>
-            )}
-          </View>
 
           {/* Meal Items */}
           <View className="mb-8">

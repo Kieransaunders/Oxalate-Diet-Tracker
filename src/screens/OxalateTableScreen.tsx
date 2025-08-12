@@ -21,6 +21,7 @@ import { getCategoryColor, getCategoryBackgroundColor, getCategoryBorderColor } 
 import { cn } from '../utils/cn';
 import NutritionModal from '../components/NutritionModal';
 import MealTracker from '../components/MealTracker';
+import DailyProgressBar from '../components/DailyProgressBar';
 import OracleScreen from './OracleScreen';
 import BottomNavigation from '../components/BottomNavigation';
 import RecipesScreen from './RecipesScreen';
@@ -527,6 +528,10 @@ const OxalateTableScreen = () => {
         </View>
       </View>
 
+      {/* Daily Progress Bar */}
+      <DailyProgressBar
+        onOpenTracker={() => setShowMealTracker(true)}
+      />
 
       {/* Search Bar */}
       <View className="px-4 py-2 bg-white border-b border-gray-200">
@@ -548,12 +553,14 @@ const OxalateTableScreen = () => {
       </View>
 
 
-      {/* Category Filters */}
-      <View className={cn("px-4 py-2 bg-white border-b border-gray-200", showRecommendedOnly && "opacity-40")}>
-        <View className="flex-row flex-wrap">
-          {categories.map(renderCategoryFilter)}
+      {/* Category Filters - only show when not using recommended filter */}
+      {!showRecommendedOnly && (
+        <View className="px-4 py-2 bg-white border-b border-gray-200">
+          <View className="flex-row flex-wrap">
+            {categories.map(renderCategoryFilter)}
+          </View>
         </View>
-      </View>
+      )}
 
       {/* View Toggle & Results Count */}
       <View className="px-4 py-2 bg-gray-50 border-b border-gray-200 flex-row items-center justify-between">
@@ -715,6 +722,10 @@ const OxalateTableScreen = () => {
       <MealTracker
         visible={showMealTracker}
         onClose={() => setShowMealTracker(false)}
+        onOpenSettings={() => {
+          setShowMealTracker(false);
+          setShowSettings(true);
+        }}
       />
 
       {/* Bottom Navigation */}
