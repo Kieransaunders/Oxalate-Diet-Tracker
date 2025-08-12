@@ -72,11 +72,11 @@ const OxalateTableScreen = () => {
         }
       },
       { 
-        text: 'Ask Assistant', 
+        text: 'Ask Oracle', 
         onPress: () => {
           setTimeout(() => {
-            setChatContextFood(food.name);
-            setShowChatAssistant(true);
+            setOracleContextFood(food.name);
+            setShowOracle(true);
           }, 100);
         }
       },
@@ -226,7 +226,7 @@ const OxalateTableScreen = () => {
               <Ionicons name="information-circle-outline" size={16} color="#6b7280" />
             </Pressable>
             <Pressable 
-              onPress={() => openChatForFood(food.name)}
+              onPress={() => openOracleForFood(food.name)}
               className="ml-1 p-1"
             >
               <Ionicons name="chatbubble-outline" size={14} color="#10b981" />
@@ -451,7 +451,7 @@ const OxalateTableScreen = () => {
       <BottomNavigation
         onFoodsPress={handleFoodsTabPress}
         onRecipesPress={() => setShowRecipes(true)}
-        onChatPress={() => setShowChatAssistant(true)}
+        onChatPress={() => setShowOracle(true)}
         onTrackerPress={() => setShowMealTracker(true)}
         activeTab="foods"
       />
