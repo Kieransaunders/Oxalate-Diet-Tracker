@@ -15,17 +15,17 @@
 ## 🎨 UI Improvements
 
 ### Phase 1 - Visual Enhancement (High Priority)
-- [ ] **Better Visual Hierarchy**
-  - [x ] Increase contrast for traffic-light colors
-  - [ x] Add subtle background shading for each row based on oxalate level
-  - [x ] Make oxalate amount more prominent (larger font, bold)
-  - [ x] Improve color accessibility for colorblind users
+- [x] **Better Visual Hierarchy**
+  - [x] Increase contrast for traffic-light colors
+  - [x] Add subtle background shading for each row based on oxalate level
+  - [x] Make oxalate amount more prominent (larger font, bold)
+  - [x] Improve color accessibility for colorblind users
 
-- [ ] **Enhanced Food Display**
-  - [x ] Add serving size information to each food item
+- [x] **Enhanced Food Display**
+  - [x] Add serving size information to each food item
   - [ ] Show alternate food names (e.g., "aubergine/eggplant")
-  - [ ] Add nutritional info tooltip with ⓘ icon
-  - [ ] Display calories, protein, fiber, vitamins per serving
+  - [x] Add nutritional info tooltip with ⓘ icon
+  - [x] Display calories, protein, fiber, vitamins per serving
 
 ### Phase 2 - Organization (Medium Priority)
 - [ ] **Category Grouping**
@@ -50,17 +50,17 @@
 ## 🚀 Feature Enhancements
 
 ### Phase 1 - Core Functionality (High Priority)
-- [ ] **Portion Size Adjustment**
-  - [ ] Add serving size selector (10g, 28g, 100g, 1 cup, etc.)
-  - [ ] Dynamically recalculate oxalate content
-  - [ ] Show oxalate per different serving sizes
-  - [ ] Custom portion input
+- [x] **Portion Size Adjustment**
+  - [x] Add serving size selector (10g, 28g, 100g, 1 cup, etc.)
+  - [x] Dynamically recalculate oxalate content
+  - [x] Show oxalate per different serving sizes
+  - [x] Custom portion input
 
-- [ ] **Meal Planning & Tracking**
-  - [ ] Build meals from food list
-  - [ ] Calculate total daily oxalate intake
-  - [ ] Save favorite meals
-  - [ ] Daily meal history
+- [x] **Meal Planning & Tracking**
+  - [x] Build meals from food list
+  - [x] Calculate total daily oxalate intake
+  - [x] Save favorite meals
+  - [x] Daily meal history
   - [ ] Weekly oxalate tracking charts
 
 ### Phase 2 - Personalization (Medium Priority)
@@ -95,6 +95,13 @@
   - [ ] Recipe sharing with oxalate calculations
   - [ ] User reviews and tips
 
+### Phase 4 - Monetization (Future)
+- [ ] **Integrate RevenueCat for AI Features**
+    - [ ] Install RevenueCat SDK
+    - [ ] Configure RevenueCat with API keys
+    - [ ] Create a paywall screen
+    - [ ] Protect AI features with a subscription check
+
 ## 🛠 Technical Improvements
 
 ### Phase 1 - Critical Fixes ✅ COMPLETED
@@ -110,11 +117,11 @@
   - [x] App icon integration - Added custom app icon from Assets/icons/icon.png
   - [x] Remove user-facing technical warnings - All API status indicators removed from UI
 
-- [ ] **Diet Mode Switching** (NEXT PRIORITY)
-  - [ ] Finish off allowing user to switch app to high and low diet
-  - [ ] Update Oracle prompts based on selected diet mode
-  - [ ] Modify food recommendations for high vs low oxalate diets
-  - [ ] Adjust UI colors and messaging for different diet modes
+- [x] **Diet Mode Switching** ✅ COMPLETED
+  - [x] Finish off allowing user to switch app to high and low diet
+  - [x] Update Oracle prompts based on selected diet mode
+  - [x] Modify food recommendations for high vs low oxalate diets
+  - [x] Adjust UI colors and messaging for different diet modes
 
 ### Phase 2 - Performance & UX
 - [ ] **Performance**

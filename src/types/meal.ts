@@ -26,4 +26,14 @@ export interface MealStore {
   setDailyLimit: (limit: number) => void;
   getMealForDate: (date: string) => DayMeal | undefined;
   clearDay: () => void;
+  addRecipeIngredients: (recipe: { 
+    title: string; 
+    ingredients: Array<{ name: string; amount?: string; }>; 
+    servings: number;
+  }, foodDatabase: OxalateFoodItem[]) => { 
+    added: number; 
+    notFound: string[]; 
+    totalOxalate: number; 
+  };
+  findFoodByName: (foodName: string, foodDatabase: OxalateFoodItem[]) => OxalateFoodItem | null;
 }

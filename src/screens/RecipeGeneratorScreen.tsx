@@ -22,9 +22,10 @@ interface RecipeGeneratorScreenProps {
   visible: boolean;
   onClose: () => void;
   onRecipeCreated?: (recipe: any) => void;
+  onNavigateToTracker?: () => void;
 }
 
-const RecipeGeneratorScreen: React.FC<RecipeGeneratorScreenProps> = ({ visible, onClose, onRecipeCreated }) => {
+const RecipeGeneratorScreen: React.FC<RecipeGeneratorScreenProps> = ({ visible, onClose, onRecipeCreated, onNavigateToTracker }) => {
   const insets = useSafeAreaInsets();
   const [customPrompt, setCustomPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -67,7 +68,18 @@ const RecipeGeneratorScreen: React.FC<RecipeGeneratorScreenProps> = ({ visible, 
       Alert.alert(
         'Ingredients Added to Tracker',
         message,
-        [{ text: 'OK' }]
+        [
+          { text: 'OK', style: 'cancel' },
+          { 
+            text: 'View Tracker', 
+            style: 'default',
+            onPress: () => {
+              if (onNavigateToTracker) {
+                onNavigateToTracker();
+              }
+            }
+          }
+        ]
       );
     } catch (error) {
       Alert.alert(

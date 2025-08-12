@@ -8,6 +8,11 @@
     "userInterfaceStyle": "light",
     "newArchEnabled": false,
     "icon": "./Assets/icons/icon.png",
+    "splash": {
+      "image": "./Assets/icons/icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "uk.co.iconnectit.oxolatediettracker",

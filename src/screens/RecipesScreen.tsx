@@ -21,9 +21,10 @@ import type { Recipe } from '../types/recipe';
 
 interface RecipesScreenProps {
   onClose?: () => void;
+  onNavigateToTracker?: () => void;
 }
 
-const RecipesScreen: React.FC<RecipesScreenProps> = ({ onClose }) => {
+const RecipesScreen: React.FC<RecipesScreenProps> = ({ onClose, onNavigateToTracker }) => {
   const insets = useSafeAreaInsets();
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [showRecipeModal, setShowRecipeModal] = useState(false);
@@ -71,7 +72,18 @@ const RecipesScreen: React.FC<RecipesScreenProps> = ({ onClose }) => {
       Alert.alert(
         'Ingredients Added to Tracker',
         message,
-        [{ text: 'OK' }]
+        [
+          { text: 'OK', style: 'cancel' },
+          { 
+            text: 'View Tracker', 
+            style: 'default',
+            onPress: () => {
+              if (onNavigateToTracker) {
+                onNavigateToTracker();
+              }
+            }
+          }
+        ]
       );
     } catch (error) {
       Alert.alert(
@@ -338,6 +350,7 @@ const RecipesScreen: React.FC<RecipesScreenProps> = ({ onClose }) => {
           setShowRecipeGenerator(false);
           setShowRecipeModal(true);
         }}
+        onNavigateToTracker={onNavigateToTracker}
       />
 
       {/* Recipe Detail Modal */}
@@ -353,6 +366,7 @@ const RecipesScreen: React.FC<RecipesScreenProps> = ({ onClose }) => {
             setShowRecipeModal(false);
             setShowEditModal(true);
           }}
+          onAddToTracker={handleAddToTracker}
         />
       )}
 
@@ -382,9 +396,10 @@ interface RecipeDetailModalProps {
   visible: boolean;
   onClose: () => void;
   onEdit: () => void;
+  onAddToTracker: (recipe: Recipe) => void;
 }
 
-const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({ recipe, visible, onClose, onEdit }) => {
+const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({ recipe, visible, onClose, onEdit, onAddToTracker }) => {
   const insets = useSafeAreaInsets();
   const { toggleFavorite } = useRecipeStore();
 
@@ -419,7 +434,7 @@ const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({ recipe, visible, 
             
             <View className="flex-row items-center space-x-2">
               <Pressable
-                onPress={() => handleAddToTracker(recipe)}
+                onPress={() => onAddToTracker(recipe)}
                 className="bg-blue-500 px-3 py-2 rounded-lg"
               >
                 <Text className="text-white text-sm font-medium">Add to Tracker</Text>

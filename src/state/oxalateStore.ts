@@ -27,7 +27,7 @@ export const useOxalateStore = create<OxalateStore>()(
           const networkState = await Network.getNetworkStateAsync();
           const isOnline = networkState.isConnected && networkState.isInternetReachable;
           set({ isOnline });
-          return isOnline;
+          return isOnline || false;
         } catch (error) {
           console.log('Network check failed:', error);
           set({ isOnline: false });

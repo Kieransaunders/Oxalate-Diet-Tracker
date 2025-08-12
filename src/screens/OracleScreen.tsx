@@ -50,6 +50,44 @@ const OracleScreen: React.FC<OracleScreenProps> = ({ visible, onClose, contextFo
     }
   };
 
+  // Diet-aware quick questions
+  const getDietAwareQuickQuestions = () => {
+    const { dietType } = userPreferences;
+    
+    switch (dietType) {
+      case 'low-oxalate':
+        return [
+          "What are the best low-oxalate breakfast options?",
+          "Which cooking methods reduce oxalate content?",
+          "What are safe daily oxalate limits for kidney stone prevention?",
+          "How can I get enough nutrients on a low-oxalate diet?",
+        ];
+      case 'moderate-oxalate':
+        return [
+          "How do I balance nutrition with oxalate restrictions?",
+          "What foods can I eat occasionally on a moderate approach?",
+          "How do I plan balanced meals with oxalate awareness?",
+          "What portion sizes work for moderate oxalate foods?",
+        ];
+      case 'high-oxalate':
+        return [
+          "Which high-oxalate foods provide the most nutrients?",
+          "How should I pair oxalate-rich foods with calcium?",
+          "What are the best preparation methods for nutrient absorption?",
+          "How do I optimize nutrition from oxalate-rich vegetables?",
+        ];
+      case 'unrestricted':
+        return [
+          "What are oxalates and why might I want to know about them?",
+          "How do oxalates affect different people?",
+          "What's the science behind oxalate metabolism?",
+          "Are there any benefits to tracking oxalate intake?",
+        ];
+      default:
+        return quickOracleQuestions.slice(0, 4);
+    }
+  };
+
   useEffect(() => {
     if (visible && scrollViewRef.current) {
       // Scroll to bottom when new messages arrive
@@ -68,7 +106,7 @@ const OracleScreen: React.FC<OracleScreenProps> = ({ visible, onClose, contextFo
       );
       
       if (!hasAskedAboutFood) {
-        const question = `Tell me about ${contextFood} - is it safe for my low-oxalate diet?`;
+        const question = `Tell me about ${contextFood} - is it suitable for my ${userPreferences.dietType.replace('-', ' ')} approach?`;
         handleQuickQuestion(question);
       }
     }
@@ -266,11 +304,15 @@ const OracleScreen: React.FC<OracleScreenProps> = ({ visible, onClose, contextFo
               </Text>
               <View className="space-y-2">
                 {(contextFood ? [
-                  `Is ${contextFood} safe for my low-oxalate diet?`,
-                  `How much ${contextFood} can I safely eat?`,
-                  `What are better alternatives to ${contextFood}?`,
-                  `How should I prepare ${contextFood} to reduce oxalates?`,
-                ] : quickOracleQuestions.slice(0, 4)).map((question, index) => (
+                  `Is ${contextFood} safe for my ${userPreferences.dietType.replace('-', ' ')} diet?`,
+                  `How much ${contextFood} can I safely eat on my ${userPreferences.dietType.replace('-', ' ')} approach?`,
+                  userPreferences.dietType === 'high-oxalate' 
+                    ? `What nutrients does ${contextFood} provide?`
+                    : `What are better alternatives to ${contextFood}?`,
+                  userPreferences.dietType === 'high-oxalate'
+                    ? `How should I prepare ${contextFood} for optimal nutrient absorption?`
+                    : `How should I prepare ${contextFood} to reduce oxalates?`,
+                ] : getDietAwareQuickQuestions()).map((question, index) => (
                   <Pressable
                     key={index}
                     onPress={() => handleQuickQuestion(question)}

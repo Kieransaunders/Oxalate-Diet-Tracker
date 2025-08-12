@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { getCategoryColor } from '../api/oxalate-api';
+import { useUserPreferencesStore } from '../state/userPreferencesStore';
 import { cn } from '../utils/cn';
 import PortionSelector from './PortionSelector';
 import type { OxalateFoodItem } from '../types/oxalate';
@@ -21,6 +22,7 @@ interface NutritionModalProps {
 
 const NutritionModal: React.FC<NutritionModalProps> = ({ food, visible, onClose, onAddToMeal }) => {
   const [showPortionSelector, setShowPortionSelector] = useState(false);
+  const { userPreferences } = useUserPreferencesStore();
   
   if (!food) return null;
 
@@ -29,6 +31,36 @@ const NutritionModal: React.FC<NutritionModalProps> = ({ food, visible, onClose,
     { label: 'Protein', value: food.protein_g, unit: 'g' },
     { label: 'Fiber', value: food.fiber_g, unit: 'g' },
   ].filter(item => item.value !== undefined && item.value !== null);
+
+  const getDietAwareAdvice = () => {
+    const { dietType } = userPreferences;
+    const oxalateLevel = food.oxalate_mg;
+    
+    if (dietType === 'high-oxalate') {
+      if (oxalateLevel >= 30) {
+        return 'Excellent nutrient-dense choice! Consider pairing with calcium-rich foods for optimal absorption.';
+      } else if (oxalateLevel >= 15) {
+        return 'Good nutritional choice with moderate oxalate content.';
+      } else {
+        return 'Low oxalate content - safe for all diet types and still provides good nutrition.';
+      }
+    } else if (dietType === 'unrestricted') {
+      return `Contains ${oxalateLevel}mg oxalate per serving. Track for awareness but no restrictions needed.`;
+    } else {
+      // low-oxalate and moderate-oxalate
+      if (food.category === 'Low') {
+        return 'This food can be enjoyed freely on most low-oxalate diets. Great for daily meals!';
+      } else if (food.category === 'Medium') {
+        return 'Consume in moderation as part of a balanced low-oxalate approach.';
+      } else if (food.category === 'High') {
+        return 'Limit portion sizes and frequency. Consider cooking methods that may reduce oxalate content.';
+      } else {
+        return dietType === 'low-oxalate' 
+          ? 'Best avoided on strict low-oxalate diets. Consider lower-oxalate alternatives.'
+          : 'Use with caution and in small portions. Monitor your daily total when including this food.';
+      }
+    }
+  };
 
   return (
     <Modal
@@ -77,10 +109,7 @@ const NutritionModal: React.FC<NutritionModalProps> = ({ food, visible, onClose,
               {food.category} Oxalate Food
             </Text>
             <Text className="text-gray-700 text-sm">
-              {food.category === 'Low' && 'Safe for most low-oxalate diets'}
-              {food.category === 'Medium' && 'Consume in moderation'}
-              {food.category === 'High' && 'Limit portions or avoid if sensitive'}
-              {food.category === 'Very High' && 'Best avoided on low-oxalate diets'}
+              {getDietAwareAdvice()}
             </Text>
           </View>
 

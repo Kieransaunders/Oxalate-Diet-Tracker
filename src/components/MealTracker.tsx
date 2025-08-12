@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useMealStore } from '../state/mealStore';
+import { useUserPreferencesStore } from '../state/userPreferencesStore';
 import { getCategoryColor, getOxalateCategory } from '../api/oxalate-api';
 import { cn } from '../utils/cn';
 
@@ -25,17 +26,28 @@ const MealTracker: React.FC<MealTrackerProps> = ({ visible, onClose }) => {
     setDailyLimit,
     clearDay,
   } = useMealStore();
+  
+  const { userPreferences, setTargetDailyLimit } = useUserPreferencesStore();
 
   const [showLimitEditor, setShowLimitEditor] = useState(false);
-  const [limitInput, setLimitInput] = useState(dailyLimit.toString());
+  const [limitInput, setLimitInput] = useState(userPreferences.targetDailyLimit.toString());
 
-  const progressPercentage = (currentDay.totalOxalate / dailyLimit) * 100;
-  const isOverLimit = currentDay.totalOxalate > dailyLimit;
+  // Update limitInput when user preferences change
+  useEffect(() => {
+    setLimitInput(userPreferences.targetDailyLimit.toString());
+  }, [userPreferences.targetDailyLimit]);
+
+  // Use the limit from user preferences
+  const effectiveDailyLimit = userPreferences.targetDailyLimit;
+  const progressPercentage = (currentDay.totalOxalate / effectiveDailyLimit) * 100;
+  const isOverLimit = currentDay.totalOxalate > effectiveDailyLimit;
   const currentCategory = getOxalateCategory(currentDay.totalOxalate);
 
   const handleSaveLimit = () => {
     const newLimit = parseFloat(limitInput);
     if (newLimit > 0) {
+      // Update both stores to keep them in sync
+      setTargetDailyLimit(newLimit);
       setDailyLimit(newLimit);
     }
     setShowLimitEditor(false);
@@ -47,6 +59,51 @@ const MealTracker: React.FC<MealTrackerProps> = ({ visible, onClose }) => {
       minute: '2-digit',
       hour12: true,
     });
+  };
+
+  const getDietAwareHelpText = () => {
+    const { dietType } = userPreferences;
+    
+    switch (dietType) {
+      case 'low-oxalate':
+        return 'Track foods you eat throughout the day. Low-oxalate diets typically recommend staying under 40-50mg per day for kidney stone prevention.';
+      case 'moderate-oxalate':
+        return 'Monitor your daily oxalate intake while maintaining nutritional balance. Aim for 50-100mg per day as a moderate approach.';
+      case 'high-oxalate':
+        return 'Track your nutrient-dense food choices. You can enjoy higher oxalate foods with proper preparation and calcium pairing.';
+      case 'unrestricted':
+        return 'Track your daily oxalate intake for educational purposes. No restrictions needed, but awareness is valuable.';
+      default:
+        return 'Track foods you eat throughout the day. Customize your daily limit to match your dietary goals.';
+    }
+  };
+
+  const getDietAwareProgressMessage = () => {
+    const { dietType } = userPreferences;
+    const percentage = progressPercentage;
+    
+    if (dietType === 'high-oxalate') {
+      if (percentage < 50) {
+        return 'Consider adding more nutrient-dense foods to your day';
+      } else if (percentage < 100) {
+        return 'Great balance of nutritious foods!';
+      } else {
+        return 'Excellent nutrient intake - remember to pair with calcium';
+      }
+    } else if (dietType === 'unrestricted') {
+      return `${currentDay.totalOxalate.toFixed(1)}mg tracked for awareness`;
+    } else {
+      // low-oxalate and moderate-oxalate
+      if (percentage <= 50) {
+        return 'Excellent! Well within your safe zone';
+      } else if (percentage <= 80) {
+        return 'Good progress, staying within limits';
+      } else if (percentage <= 100) {
+        return 'Approaching your daily limit';
+      } else {
+        return 'Consider reducing portion sizes or choosing lower oxalate alternatives.';
+      }
+    }
   };
 
   return (
@@ -81,8 +138,7 @@ const MealTracker: React.FC<MealTrackerProps> = ({ visible, onClose }) => {
                   Monitor Your Daily Oxalate Intake
                 </Text>
                 <Text className="text-purple-700 text-xs leading-4">
-                  Track foods you eat throughout the day. Most low-oxalate diets recommend 
-                  staying under 40-50mg per day. Tap "Edit Limit" to customize your target.
+                  {getDietAwareHelpText()} Tap "Edit Limit" to customize your target.
                 </Text>
               </View>
             </View>
@@ -120,18 +176,26 @@ const MealTracker: React.FC<MealTrackerProps> = ({ visible, onClose }) => {
                 {currentDay.totalOxalate.toFixed(1)} mg
               </Text>
               <Text className="text-gray-600">
-                of {dailyLimit} mg limit
+                of {effectiveDailyLimit} mg limit
               </Text>
             </View>
 
-            {isOverLimit && (
+            {/* Diet-aware progress message */}
+            <View className="mt-3">
+              <Text className="text-sm text-gray-600 text-center">
+                {getDietAwareProgressMessage()}
+              </Text>
+            </View>
+
+            {/* Show warning only for restrictive diets */}
+            {isOverLimit && userPreferences.dietType !== 'unrestricted' && userPreferences.dietType !== 'high-oxalate' && (
               <View className="bg-red-50 border border-red-200 rounded-lg p-3 mt-3">
                 <View className="flex-row items-center">
                   <Ionicons name="warning" size={16} color="#ef4444" />
                   <Text className="text-red-800 font-medium ml-2">Over Daily Limit</Text>
                 </View>
                 <Text className="text-red-700 text-sm mt-1">
-                  Consider reducing portion sizes or choosing lower oxalate alternatives.
+                  {getDietAwareProgressMessage()}
                 </Text>
               </View>
             )}

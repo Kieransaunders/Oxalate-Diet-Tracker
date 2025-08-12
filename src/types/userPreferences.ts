@@ -15,9 +15,9 @@ export interface UserPreferences {
   };
   profile?: {
     name?: string;
-    setupCompleted: boolean;
-    createdAt: number;
-    lastUpdated: number;
+    setupCompleted?: boolean;
+    createdAt?: number;
+    lastUpdated?: number;
   };
 }
 
