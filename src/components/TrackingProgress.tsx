@@ -12,9 +12,10 @@ import { cn } from '../utils/cn';
 
 interface TrackingProgressProps {
   onOpenTracker: () => void;
+  hideDetailsButton?: boolean;
 }
 
-const TrackingProgress: React.FC<TrackingProgressProps> = ({ onOpenTracker }) => {
+const TrackingProgress: React.FC<TrackingProgressProps> = ({ onOpenTracker, hideDetailsButton = false }) => {
   const { currentDay, mealHistory } = useMealStore();
   const { userPreferences } = useUserPreferencesStore();
 
@@ -57,7 +58,7 @@ const TrackingProgress: React.FC<TrackingProgressProps> = ({ onOpenTracker }) =>
     yesterday.setDate(yesterday.getDate() - 1);
     
     if (dateString === today.toISOString().split('T')[0]) return 'Today';
-    if (dateString === yesterday.toISOString().split('T')[0]) return 'Yest';
+    if (dateString === yesterday.toISOString().split('T')[0]) return 'Yesterday';
     
     return date.toLocaleDateString('en-US', { weekday: 'short' }).slice(0, 3);
   };
@@ -83,49 +84,48 @@ const TrackingProgress: React.FC<TrackingProgressProps> = ({ onOpenTracker }) =>
   };
 
   return (
-    <View className="mx-4 mb-4">
-      {/* Today's Progress */}
-      <Pressable
-        onPress={onOpenTracker}
-        className="bg-white rounded-lg p-4 shadow-sm border border-gray-100"
-      >
-        <View className="flex-row items-center justify-between mb-3">
-          <View className="flex-1">
-            <Text className="text-lg font-bold text-gray-900">Today's Progress</Text>
-            <Text className="text-gray-600 text-sm">{getDietAwareMessage()}</Text>
-          </View>
-          <View className="items-end">
-            <Text 
-              className="text-xl font-bold"
-              style={{ color: isOverLimit ? '#ef4444' : getCategoryColor(currentCategory) }}
-            >
-              {currentDay.totalOxalate.toFixed(1)}
-            </Text>
-            <Text className="text-gray-500 text-sm">of {effectiveDailyLimit}mg</Text>
-          </View>
+    <Pressable
+      onPress={onOpenTracker}
+      className="bg-white rounded-lg p-4 shadow-sm border border-gray-100"
+    >
+      <View className="flex-row items-center justify-between mb-4">
+        <View className="flex-1">
+          <Text className="text-lg font-bold text-gray-900">Today's Progress</Text>
+          <Text className="text-gray-600 text-sm">{getDietAwareMessage()}</Text>
         </View>
-
-        {/* Progress Bar */}
-        <View className="bg-gray-200 h-2 rounded-full mb-3">
-          <View
-            className="h-2 rounded-full"
-            style={{
-              width: `${Math.min(progressPercentage, 100)}%`,
-              backgroundColor: isOverLimit ? '#ef4444' : getCategoryColor(currentCategory),
-            }}
-          />
+        <View className="items-end">
+          <Text 
+            className="text-xl font-bold"
+            style={{ color: isOverLimit ? '#ef4444' : getCategoryColor(currentCategory) }}
+          >
+            {currentDay.totalOxalate.toFixed(1)}
+          </Text>
+          <Text className="text-gray-500 text-sm">of {effectiveDailyLimit}mg</Text>
         </View>
+      </View>
 
-        {/* 7-Day Mini Chart */}
-        <View className="flex-row items-center justify-between mb-2">
-          <Text className="text-sm font-medium text-gray-700">7-Day Trend</Text>
-          <Text className="text-xs text-gray-500">{currentDay.items.length} foods today</Text>
-        </View>
+      {/* Progress Bar */}
+      <View className="bg-gray-200 h-2 rounded-full mb-4">
+        <View
+          className="h-2 rounded-full"
+          style={{
+            width: `${Math.min(progressPercentage, 100)}%`,
+            backgroundColor: isOverLimit ? '#ef4444' : getCategoryColor(currentCategory),
+          }}
+        />
+      </View>
 
+      {/* 7-Day Mini Chart */}
+      <View className="flex-row items-center justify-between mb-3">
+        <Text className="text-sm font-medium text-gray-700">7-Day Trend</Text>
+        <Text className="text-xs text-gray-500">{currentDay.items.length} foods today</Text>
+      </View>
+
+      <View className="space-y-1">
+        {/* Chart bars and regular days (Mon-Fri) */}
         <View className="flex-row items-end justify-between h-12">
-          {weekData.map((day, index) => {
+          {weekData.slice(0, 5).map((day, index) => {
             const height = maxOxalate > 0 ? (day.oxalate / maxOxalate) * 40 : 0;
-            const isToday = day.date === currentDay.date;
             const dayCategory = getOxalateCategory(day.oxalate);
             
             return (
@@ -134,18 +134,13 @@ const TrackingProgress: React.FC<TrackingProgressProps> = ({ onOpenTracker }) =>
                   className="w-4 rounded-t-sm mb-1"
                   style={{
                     height: Math.max(height, 1),
-                    backgroundColor: isToday 
-                      ? (isOverLimit ? '#ef4444' : getCategoryColor(currentCategory))
-                      : day.oxalate > effectiveDailyLimit 
-                        ? '#ef4444' 
-                        : getCategoryColor(dayCategory),
-                    opacity: isToday ? 1 : 0.6,
+                    backgroundColor: day.oxalate > effectiveDailyLimit 
+                      ? '#ef4444' 
+                      : getCategoryColor(dayCategory),
+                    opacity: 0.6,
                   }}
                 />
-                <Text className={cn(
-                  "text-xs",
-                  isToday ? "font-bold text-gray-900" : "text-gray-500"
-                )}>
+                <Text className="text-xs text-center text-gray-500">
                   {getDayLabel(day.date)}
                 </Text>
               </View>
@@ -153,13 +148,53 @@ const TrackingProgress: React.FC<TrackingProgressProps> = ({ onOpenTracker }) =>
           })}
         </View>
 
-        {/* Tap to view details */}
-        <View className="flex-row items-center justify-center mt-2">
+        {/* Yesterday row */}
+        {weekData[5] && (
+          <View className="flex-row items-center py-2 bg-gray-50 rounded px-2">
+            <Text className="text-sm font-medium text-gray-700 flex-1">Yesterday</Text>
+            <View className="flex-row items-center">
+              <View
+                className="w-3 h-3 rounded-full mr-2"
+                style={{
+                  backgroundColor: weekData[5].oxalate > effectiveDailyLimit 
+                    ? '#ef4444' 
+                    : getCategoryColor(getOxalateCategory(weekData[5].oxalate)),
+                }}
+              />
+              <Text className="text-sm font-semibold text-gray-900">
+                {weekData[5].oxalate.toFixed(1)} mg
+              </Text>
+            </View>
+          </View>
+        )}
+
+        {/* Today row */}
+        {weekData[6] && (
+          <View className="flex-row items-center py-2 bg-blue-50 rounded px-2">
+            <Text className="text-sm font-bold text-blue-900 flex-1">Today</Text>
+            <View className="flex-row items-center">
+              <View
+                className="w-3 h-3 rounded-full mr-2"
+                style={{
+                  backgroundColor: isOverLimit ? '#ef4444' : getCategoryColor(currentCategory),
+                }}
+              />
+              <Text className="text-sm font-bold text-blue-900">
+                {currentDay.totalOxalate.toFixed(1)} mg
+              </Text>
+            </View>
+          </View>
+        )}
+      </View>
+
+      {/* Tap to view details */}
+      {!hideDetailsButton && (
+        <View className="flex-row items-center justify-center mt-3">
           <Text className="text-blue-600 text-sm font-medium mr-1">Tap to view details</Text>
           <Ionicons name="chevron-forward" size={14} color="#3b82f6" />
         </View>
-      </Pressable>
-    </View>
+      )}
+    </Pressable>
   );
 };
 

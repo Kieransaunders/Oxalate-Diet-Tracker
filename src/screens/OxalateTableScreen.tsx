@@ -21,7 +21,6 @@ import { getCategoryColor, getCategoryBackgroundColor, getCategoryBorderColor } 
 import { cn } from '../utils/cn';
 import NutritionModal from '../components/NutritionModal';
 import MealTracker from '../components/MealTracker';
-import TrackingProgress from '../components/TrackingProgress';
 import OracleScreen from './OracleScreen';
 import BottomNavigation from '../components/BottomNavigation';
 import RecipesScreen from './RecipesScreen';
@@ -333,19 +332,19 @@ const OxalateTableScreen = () => {
         onPress={isDisabled ? undefined : () => toggleCategory(category)}
         disabled={isDisabled}
         className={cn(
-          "flex-row items-center px-3 py-2 rounded-lg mr-2 mb-2",
+          "flex-row items-center px-2.5 py-1.5 rounded-lg mr-2 mb-1.5",
           isDisabled ? "opacity-30" : (isSelected ? "opacity-100" : "opacity-40")
         )}
         style={{ backgroundColor: isSelected && !isDisabled ? color + '20' : '#f3f4f6' }}
       >
         <Ionicons
           name={getCategoryIcon(category)}
-          size={16}
+          size={14}
           color={isDisabled ? '#d1d5db' : color}
-          style={{ marginRight: 6 }}
+          style={{ marginRight: 4 }}
         />
         <Text 
-          className="text-sm font-medium"
+          className="text-xs font-medium"
           style={{ color: isDisabled ? '#d1d5db' : (isSelected ? color : '#6b7280') }}
         >
           {category}
@@ -362,7 +361,7 @@ const OxalateTableScreen = () => {
     return (
       <Pressable
         onPress={() => openNutritionModal(food)}
-        className="flex-row items-center px-4 py-4 border-b active:opacity-70"
+        className="flex-row items-center px-4 py-3 border-b active:opacity-70"
         style={{ 
           backgroundColor,
           borderBottomColor: borderColor,
@@ -526,19 +525,11 @@ const OxalateTableScreen = () => {
             <Ionicons name="settings-outline" size={20} color="#374151" />
           </Pressable>
         </View>
-        <Text className="text-gray-600">
-          {getDietAwareMessage()}
-        </Text>
-
       </View>
 
-      {/* Daily Progress Tracker */}
-      <TrackingProgress
-        onOpenTracker={() => setShowMealTracker(true)}
-      />
 
       {/* Search Bar */}
-      <View className="px-4 py-3 bg-white border-b border-gray-200">
+      <View className="px-4 py-2 bg-white border-b border-gray-200">
         <View className="flex-row items-center bg-gray-100 rounded-lg px-3 py-2">
           <Ionicons name="search" size={20} color="#6b7280" />
           <TextInput
@@ -556,64 +547,63 @@ const OxalateTableScreen = () => {
         </View>
       </View>
 
-      {/* Recommended for Me Filter - only show for restricted diets */}
-      {userPreferences.dietType !== 'unrestricted' && (
-        <View className="px-4 py-2 bg-gray-50 border-b border-gray-200">
-          <Pressable
-            onPress={() => setShowRecommendedOnly(!showRecommendedOnly)}
-            className={cn(
-              "px-4 py-2 rounded-lg border flex-row items-center justify-center",
-              showRecommendedOnly 
-                ? "bg-green-100 border-green-300" 
-                : "bg-white border-gray-300"
-            )}
-          >
-            <Ionicons 
-              name="star" 
-              size={16} 
-              color={showRecommendedOnly ? '#16a34a' : '#6b7280'} 
-            />
-            <Text 
-              className={cn(
-                "text-sm font-medium ml-2",
-                showRecommendedOnly ? "text-green-700" : "text-gray-600"
-              )}
-            >
-              {showRecommendedOnly ? 'Showing Recommended Foods' : 'Show Only Recommended for Me'}
-            </Text>
-          </Pressable>
-        </View>
-      )}
 
       {/* Category Filters */}
-      <View className={cn("px-4 py-3 bg-white border-b border-gray-200", showRecommendedOnly && "opacity-40")}>
-        <Text className={cn("text-sm font-medium mb-2", showRecommendedOnly ? "text-gray-400" : "text-gray-700")}>
-          {showRecommendedOnly ? "Filter by category (disabled while showing recommended):" : "Filter by category:"}
-        </Text>
+      <View className={cn("px-4 py-2 bg-white border-b border-gray-200", showRecommendedOnly && "opacity-40")}>
         <View className="flex-row flex-wrap">
           {categories.map(renderCategoryFilter)}
         </View>
       </View>
 
       {/* View Toggle & Results Count */}
-      <View className="px-4 py-3 bg-gray-50 border-b border-gray-200 flex-row items-center justify-between">
+      <View className="px-4 py-2 bg-gray-50 border-b border-gray-200 flex-row items-center justify-between">
         <Text className="text-sm text-gray-600">
           {isLoading ? 'Loading...' : `${recommendedFoods.length} foods found`}
         </Text>
         
-        <Pressable
-          onPress={() => setGroupByCategory(!groupByCategory)}
-          className="flex-row items-center bg-white px-3 py-1 rounded-lg border border-gray-200"
-        >
-          <Ionicons 
-            name={groupByCategory ? "list" : "albums"} 
-            size={16} 
-            color="#6b7280" 
-          />
-          <Text className="text-gray-700 text-sm ml-1 font-medium">
-            {groupByCategory ? 'List View' : 'Group View'}
-          </Text>
-        </Pressable>
+        <View className="flex-row items-center space-x-2">
+          {/* Recommended Filter - only show for restricted diets */}
+          {userPreferences.dietType !== 'unrestricted' && (
+            <Pressable
+              onPress={() => setShowRecommendedOnly(!showRecommendedOnly)}
+              className={cn(
+                "flex-row items-center px-2.5 py-1 rounded-lg border",
+                showRecommendedOnly 
+                  ? "bg-green-100 border-green-300" 
+                  : "bg-white border-gray-200"
+              )}
+            >
+              <Ionicons 
+                name="star" 
+                size={14} 
+                color={showRecommendedOnly ? '#16a34a' : '#6b7280'} 
+              />
+              <Text 
+                className={cn(
+                  "text-xs font-medium ml-1",
+                  showRecommendedOnly ? "text-green-700" : "text-gray-600"
+                )}
+              >
+                {showRecommendedOnly ? 'Recommended' : 'Recommend'}
+              </Text>
+            </Pressable>
+          )}
+          
+          {/* Group View Toggle */}
+          <Pressable
+            onPress={() => setGroupByCategory(!groupByCategory)}
+            className="flex-row items-center bg-white px-2.5 py-1 rounded-lg border border-gray-200"
+          >
+            <Ionicons 
+              name={groupByCategory ? "list" : "albums"} 
+              size={14} 
+              color="#6b7280" 
+            />
+            <Text className="text-gray-700 text-xs ml-1 font-medium">
+              {groupByCategory ? 'List' : 'Group'}
+            </Text>
+          </Pressable>
+        </View>
       </View>
 
       {/* Table */}

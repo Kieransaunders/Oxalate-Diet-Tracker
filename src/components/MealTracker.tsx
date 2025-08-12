@@ -12,6 +12,7 @@ import { useMealStore } from '../state/mealStore';
 import { useUserPreferencesStore } from '../state/userPreferencesStore';
 import { getCategoryColor, getOxalateCategory } from '../api/oxalate-api';
 import { cn } from '../utils/cn';
+import TrackingProgress from './TrackingProgress';
 
 interface MealTrackerProps {
   visible: boolean;
@@ -128,9 +129,9 @@ const MealTracker: React.FC<MealTrackerProps> = ({ visible, onClose }) => {
           </Pressable>
         </View>
 
-        <ScrollView className="flex-1 px-6 py-4">
+        <ScrollView className="flex-1 px-6 py-6">
           {/* Help Text */}
-          <View className="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-6">
+          <View className="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-8">
             <View className="flex-row items-start">
               <Ionicons name="analytics" size={20} color="#7c3aed" />
               <View className="flex-1 ml-3">
@@ -144,8 +145,16 @@ const MealTracker: React.FC<MealTrackerProps> = ({ visible, onClose }) => {
             </View>
           </View>
 
+          {/* 7-Day Progress Overview */}
+          <View className="mb-8">
+            <TrackingProgress
+              onOpenTracker={() => {}} // Empty since we're already in the tracker
+              hideDetailsButton={true} // Hide the details button since we're in the tracker
+            />
+          </View>
+
           {/* Daily Progress */}
-          <View className="mb-6">
+          <View className="mb-8">
             <View className="flex-row items-center justify-between mb-2">
               <Text className="text-lg font-semibold text-gray-900">Daily Progress</Text>
               <Pressable
@@ -202,7 +211,7 @@ const MealTracker: React.FC<MealTrackerProps> = ({ visible, onClose }) => {
           </View>
 
           {/* Meal Items */}
-          <View className="mb-6">
+          <View className="mb-8">
             <View className="flex-row items-center justify-between mb-3">
               <Text className="text-lg font-semibold text-gray-900">
                 Today's Foods ({currentDay.items.length})
