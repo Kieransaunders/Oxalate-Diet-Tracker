@@ -32,7 +32,7 @@ export const enhanceQuestionWithSystemContext = (question: string, systemContext
 export const queryOxalateOracle = async (question: string, systemContext?: string): Promise<ChatResponse> => {
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
 
     const response = await fetch(ORACLE_API_URL, {
       method: "POST",
@@ -85,7 +85,7 @@ export const queryOxalateOracle = async (question: string, systemContext?: strin
     console.error('Oxalate Oracle API Error:', error);
     
     if (error instanceof Error && error.name === 'AbortError') {
-      return { error: 'The Oracle is taking too long to respond. Please try a shorter question.' };
+      return { error: 'The Oracle is taking longer than usual. Let me try to help with my built-in wisdom instead.' };
     }
     
     return { 

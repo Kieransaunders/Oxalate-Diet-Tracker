@@ -13,6 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useUserPreferencesStore } from '../state/userPreferencesStore';
 import { useMealStore } from '../state/mealStore';
+import { useSubscriptionStore } from '../state/subscriptionStore';
 import { 
   DietType, 
   MedicalCondition, 
@@ -22,6 +23,7 @@ import {
   oraclePersonalities
 } from '../types/userPreferences';
 import { cn } from '../utils/cn';
+import PaywallModal from '../components/PaywallModal';
 
 interface SettingsScreenProps {
   visible: boolean;
@@ -40,15 +42,54 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ visible, onClose }) => 
     resetToDefaults 
   } = useUserPreferencesStore();
   const { setDailyLimit } = useMealStore();
+  const { 
+    status: subscriptionStatus, 
+    customerInfo, 
+    restorePurchases,
+    initializePurchases,
+    getRemainingOracleQuestions,
+    getRemainingRecipes,
+    getRemainingTrackingDays
+  } = useSubscriptionStore();
 
   const [customLimit, setCustomLimit] = useState(userPreferences.targetDailyLimit.toString());
   const [showCustomLimit, setShowCustomLimit] = useState(false);
+  const [showPaywall, setShowPaywall] = useState(false);
+  const [isRestoring, setIsRestoring] = useState(false);
 
   const handleDietTypeChange = (dietType: DietType) => {
     setDietType(dietType);
     // Also update the meal tracker's daily limit
     const preset = dietTypePresets[dietType];
     setDailyLimit(preset.limit);
+  };
+
+  const handleRestorePurchases = async () => {
+    setIsRestoring(true);
+    try {
+      const success = await restorePurchases();
+      if (success) {
+        Alert.alert(
+          'Purchases Restored!',
+          'Your premium subscription has been restored.',
+          [{ text: 'OK' }]
+        );
+      } else {
+        Alert.alert(
+          'No Purchases Found',
+          'No previous purchases were found for this account.',
+          [{ text: 'OK' }]
+        );
+      }
+    } catch (error) {
+      Alert.alert(
+        'Restore Failed',
+        'Could not restore purchases. Please try again.',
+        [{ text: 'OK' }]
+      );
+    } finally {
+      setIsRestoring(false);
+    }
   };
 
   const handleCustomLimitSave = () => {
@@ -156,6 +197,89 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ visible, onClose }) => 
               </View>
             </View>
 
+          </View>
+
+          {/* Premium Subscription Section */}
+          <View className="mb-8">
+            <Text className="text-xl font-bold text-gray-900 mb-4">Subscription</Text>
+            
+            {subscriptionStatus === 'premium' ? (
+              <View className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-4">
+                <View className="flex-row items-center mb-3">
+                  <View className="w-10 h-10 bg-green-500 rounded-full items-center justify-center mr-3">
+                    <Ionicons name="checkmark" size={20} color="white" />
+                  </View>
+                  <View className="flex-1">
+                    <Text className="text-lg font-bold text-green-800">Premium Active</Text>
+                    <Text className="text-green-600 text-sm">All features unlocked</Text>
+                  </View>
+                </View>
+                
+                <View className="bg-white/70 rounded-lg p-3 mb-3">
+                  <Text className="text-green-800 font-medium mb-2">Premium Benefits</Text>
+                  <View className="space-y-1">
+                    <Text className="text-green-700 text-sm">• Unlimited Oracle questions</Text>
+                    <Text className="text-green-700 text-sm">• Unlimited recipe storage</Text>
+                    <Text className="text-green-700 text-sm">• Unlimited meal tracking</Text>
+                    <Text className="text-green-700 text-sm">• Export your data</Text>
+                    <Text className="text-green-700 text-sm">• Priority support</Text>
+                  </View>
+                </View>
+                
+                <Pressable
+                  onPress={handleRestorePurchases}
+                  disabled={isRestoring}
+                  className="bg-green-500 py-3 rounded-lg"
+                >
+                  <Text className="text-white font-semibold text-center">
+                    {isRestoring ? 'Restoring...' : 'Restore Purchases'}
+                  </Text>
+                </Pressable>
+              </View>
+            ) : (
+              <View className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg p-4">
+                <View className="flex-row items-center mb-3">
+                  <View className="w-10 h-10 bg-purple-500 rounded-full items-center justify-center mr-3">
+                    <Ionicons name="star" size={20} color="white" />
+                  </View>
+                  <View className="flex-1">
+                    <Text className="text-lg font-bold text-purple-800">Free Plan</Text>
+                    <Text className="text-purple-600 text-sm">Upgrade to unlock all features</Text>
+                  </View>
+                </View>
+                
+                <View className="bg-white/70 rounded-lg p-3 mb-3">
+                  <Text className="text-purple-800 font-medium mb-2">Current Usage</Text>
+                  <View className="space-y-1">
+                    <Text className="text-purple-700 text-sm">• Oracle: {getRemainingOracleQuestions()} questions remaining today</Text>
+                    <Text className="text-purple-700 text-sm">• Recipes: {getRemainingRecipes()} recipe slots remaining</Text>
+                    <Text className="text-purple-700 text-sm">• Tracking: {getRemainingTrackingDays()} days remaining</Text>
+                  </View>
+                </View>
+                
+                <View className="flex-row space-x-3">
+                  <Pressable
+                    onPress={() => setShowPaywall(true)}
+                    className="flex-1 bg-gradient-to-r from-purple-500 to-blue-500 py-3 rounded-lg"
+                  >
+                    <Text className="text-white font-semibold text-center">Upgrade to Premium</Text>
+                  </Pressable>
+                  
+                  <Pressable
+                    onPress={handleRestorePurchases}
+                    disabled={isRestoring}
+                    className="bg-gray-200 px-4 py-3 rounded-lg"
+                  >
+                    <Text className="text-gray-700 font-medium text-center">
+                      {isRestoring ? 'Restoring...' : 'Restore'}
+                    </Text>
+                  </Pressable>
+                </View>
+              </View>
+            )}
+          </View>
+
+          <View className="mb-8">
             {/* Custom Daily Limit */}
             <View className="bg-white rounded-lg p-4 border border-gray-200">
               <View className="flex-row items-center justify-between">
@@ -334,6 +458,12 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ visible, onClose }) => 
             </View>
           </View>
         </Modal>
+
+        {/* Premium Paywall Modal */}
+        <PaywallModal
+          visible={showPaywall}
+          onClose={() => setShowPaywall(false)}
+        />
       </View>
     </Modal>
   );

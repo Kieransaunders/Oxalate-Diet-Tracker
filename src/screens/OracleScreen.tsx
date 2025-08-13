@@ -15,7 +15,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { useOracleStore } from '../state/oracleStore';
 import { useMealStore } from '../state/mealStore';
 import { useUserPreferencesStore } from '../state/userPreferencesStore';
+import { useSubscriptionStore } from '../state/subscriptionStore';
 import { enhanceQuestionWithContext, quickOracleQuestions } from '../api/chat-oracle-api';
+import PremiumGate from '../components/PremiumGate';
 import { cn } from '../utils/cn';
 
 interface OracleScreenProps {
@@ -33,6 +35,12 @@ const OracleScreen: React.FC<OracleScreenProps> = ({ visible, onClose, contextFo
   const { messages, isLoading, streamingMessageId, sendMessageStreaming, clearChat } = useOracleStore();
   const { currentDay } = useMealStore();
   const { userPreferences, getOracleSystemPrompt } = useUserPreferencesStore();
+  const { 
+    status: subscriptionStatus, 
+    canAskOracleQuestion, 
+    incrementOracleQuestions, 
+    getRemainingOracleQuestions 
+  } = useSubscriptionStore();
 
   // Dynamic Oracle title based on user's diet type
   const getOracleTitle = () => {
@@ -114,6 +122,19 @@ const OracleScreen: React.FC<OracleScreenProps> = ({ visible, onClose, contextFo
 
   const handleSendMessage = async () => {
     if (inputText.trim() && !isLoading) {
+      // Check if user can ask questions (for free users)
+      if (!canAskOracleQuestion()) {
+        return; // PremiumGate will handle showing upgrade prompt
+      }
+
+      // Increment usage counter for free users
+      if (subscriptionStatus === 'free') {
+        const canProceed = incrementOracleQuestions();
+        if (!canProceed) {
+          return; // This shouldn't happen as we check canAskOracleQuestion above
+        }
+      }
+
       let messageText = inputText.trim();
       
       // Add context about current meal and viewed food
@@ -128,6 +149,19 @@ const OracleScreen: React.FC<OracleScreenProps> = ({ visible, onClose, contextFo
 
   const handleQuickQuestion = async (question: string) => {
     if (isLoading) return;
+    
+    // Check if user can ask questions (for free users)
+    if (!canAskOracleQuestion()) {
+      return; // PremiumGate will handle showing upgrade prompt
+    }
+
+    // Increment usage counter for free users
+    if (subscriptionStatus === 'free') {
+      const canProceed = incrementOracleQuestions();
+      if (!canProceed) {
+        return; // This shouldn't happen as we check canAskOracleQuestion above
+      }
+    }
     
     // Add context to quick questions
     const contextualQuestion = enhanceQuestionWithContext(question, currentDay.items, contextFood);
@@ -277,9 +311,15 @@ const OracleScreen: React.FC<OracleScreenProps> = ({ visible, onClose, contextFo
               <Text className="text-purple-900 font-medium text-sm">
                 🧙‍♂️ Ask the Oracle about oxalates, foods, and nutrition wisdom
               </Text>
-              <Text className="text-purple-700 text-xs mt-1">
-                Direct API connection for faster, more reliable responses
-              </Text>
+              {subscriptionStatus === 'premium' ? (
+                <Text className="text-purple-700 text-xs mt-1">
+                  Premium: Unlimited questions available
+                </Text>
+              ) : (
+                <Text className="text-purple-700 text-xs mt-1">
+                  Free: {getRemainingOracleQuestions()} questions remaining today
+                </Text>
+              )}
             </View>
           </View>
         </View>
@@ -334,42 +374,67 @@ const OracleScreen: React.FC<OracleScreenProps> = ({ visible, onClose, contextFo
 
         {/* Input Area */}
         <View className="bg-white border-t border-gray-200 px-4 py-3" style={{ paddingBottom: insets.bottom + 12 }}>
-          <View className="flex-row items-end">
-            <View className="flex-1 bg-purple-50 rounded-2xl px-4 py-3 mr-3 border border-purple-200">
-              <TextInput
-                className="text-base text-gray-900 max-h-24"
-                placeholder="Ask the Oracle about oxalates, foods, or diet wisdom..."
-                placeholderTextColor="#9ca3af"
-                value={inputText}
-                onChangeText={setInputText}
-                multiline
-                maxLength={500}
-                onSubmitEditing={handleSendMessage}
-                blurOnSubmit={false}
-              />
-            </View>
-            
-            <Pressable
-              onPress={handleSendMessage}
-              disabled={!inputText.trim() || isLoading}
-              className={cn(
-                "w-12 h-12 rounded-full items-center justify-center",
-                inputText.trim() && !isLoading
-                  ? "bg-gradient-to-r from-purple-500 to-blue-500"
-                  : "bg-gray-300"
-              )}
-            >
-              {isLoading ? (
-                <ActivityIndicator size="small" color="white" />
-              ) : (
-                <Ionicons 
-                  name="send" 
-                  size={20} 
-                  color={inputText.trim() ? "white" : "#9ca3af"} 
+          {canAskOracleQuestion() ? (
+            <View className="flex-row items-end">
+              <View className="flex-1 bg-purple-50 rounded-2xl px-4 py-3 mr-3 border border-purple-200">
+                <TextInput
+                  className="text-base text-gray-900 max-h-24"
+                  placeholder="Ask the Oracle about oxalates, foods, or diet wisdom..."
+                  placeholderTextColor="#9ca3af"
+                  value={inputText}
+                  onChangeText={setInputText}
+                  multiline
+                  maxLength={500}
+                  onSubmitEditing={handleSendMessage}
+                  blurOnSubmit={false}
                 />
-              )}
-            </Pressable>
-          </View>
+              </View>
+              
+              <Pressable
+                onPress={handleSendMessage}
+                disabled={!inputText.trim() || isLoading}
+                className={cn(
+                  "w-12 h-12 rounded-full items-center justify-center",
+                  inputText.trim() && !isLoading
+                    ? "bg-gradient-to-r from-purple-500 to-blue-500"
+                    : "bg-gray-300"
+                )}
+              >
+                {isLoading ? (
+                  <ActivityIndicator size="small" color="white" />
+                ) : (
+                  <Ionicons 
+                    name="send" 
+                    size={20} 
+                    color={inputText.trim() ? "white" : "#9ca3af"} 
+                  />
+                )}
+              </Pressable>
+            </View>
+          ) : (
+            <PremiumGate 
+              feature="oracle" 
+              showUpgradePrompt={true}
+              customMessage="You've reached your daily limit of 5 Oracle questions. Upgrade to Premium for unlimited access!"
+            >
+              <View className="flex-row items-end opacity-50">
+                <View className="flex-1 bg-gray-100 rounded-2xl px-4 py-3 mr-3 border border-gray-200">
+                  <TextInput
+                    className="text-base text-gray-500 max-h-24"
+                    placeholder="Upgrade to Premium to ask more questions..."
+                    placeholderTextColor="#9ca3af"
+                    value=""
+                    editable={false}
+                    multiline
+                  />
+                </View>
+                
+                <View className="w-12 h-12 rounded-full items-center justify-center bg-gray-300">
+                  <Ionicons name="lock-closed" size={20} color="#9ca3af" />
+                </View>
+              </View>
+            </PremiumGate>
+          )}
         </View>
       </KeyboardAvoidingView>
     </Modal>

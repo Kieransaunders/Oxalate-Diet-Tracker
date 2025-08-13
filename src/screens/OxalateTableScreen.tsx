@@ -17,6 +17,7 @@ import { useOxalateStore } from '../state/oxalateStore';
 import { useMealStore } from '../state/mealStore';
 import { useOracleStore } from '../state/oracleStore';
 import { useUserPreferencesStore } from '../state/userPreferencesStore';
+import { useSubscriptionStore } from '../state/subscriptionStore';
 import { getCategoryColor, getCategoryBackgroundColor, getCategoryBorderColor } from '../api/oxalate-api';
 import { cn } from '../utils/cn';
 import NutritionModal from '../components/NutritionModal';
@@ -60,6 +61,7 @@ const OxalateTableScreen = () => {
   const { addMealItem, currentDay } = useMealStore();
   const { clearChat } = useOracleStore();
   const { userPreferences } = useUserPreferencesStore();
+  const { startTracking, incrementTrackingDay } = useSubscriptionStore();
 
   const openNutritionModal = (food: OxalateFoodItem) => {
     setSelectedFood(food);
@@ -736,7 +738,12 @@ const OxalateTableScreen = () => {
           setOracleContextFood(undefined);
           setShowOracle(true);
         }}
-        onTrackerPress={() => setShowMealTracker(true)}
+        onTrackerPress={() => {
+          // Start or increment tracking for free users
+          startTracking();
+          incrementTrackingDay();
+          setShowMealTracker(true);
+        }}
         activeTab="foods"
       />
 

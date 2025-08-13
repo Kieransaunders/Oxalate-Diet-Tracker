@@ -1,7 +1,10 @@
+import React, { useEffect } from "react";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { NavigationContainer } from "@react-navigation/native";
 import OxalateTableScreen from "./src/screens/OxalateTableScreen";
+import { useSubscriptionStore } from "./src/state/subscriptionStore";
+import { configureRevenueCat } from "./src/config/revenuecat";
 
 /*
 IMPORTANT NOTICE: DO NOT REMOVE
@@ -25,6 +28,22 @@ const openai_api_key = Constants.expoConfig.extra.apikey;
 */
 
 export default function App() {
+  const { initializePurchases } = useSubscriptionStore();
+
+  useEffect(() => {
+    const setupRevenueCat = async () => {
+      try {
+        await configureRevenueCat();
+        await initializePurchases();
+      } catch (error) {
+        console.warn('RevenueCat setup failed:', error);
+        // App continues to work without premium features
+      }
+    };
+
+    setupRevenueCat();
+  }, [initializePurchases]);
+
   return (
     <SafeAreaProvider>
       <NavigationContainer>

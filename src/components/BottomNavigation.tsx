@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useMealStore } from '../state/mealStore';
 import { useRecipeStore } from '../state/recipeStore';
+import { useSubscriptionStore } from '../state/subscriptionStore';
 import { cn } from '../utils/cn';
 
 interface BottomNavigationProps {
@@ -28,6 +29,12 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({
   const insets = useSafeAreaInsets();
   const { currentDay } = useMealStore();
   const { recipes } = useRecipeStore();
+  const { 
+    status: subscriptionStatus, 
+    getRemainingOracleQuestions, 
+    getRemainingRecipes, 
+    getRemainingTrackingDays 
+  } = useSubscriptionStore();
 
   const navItems = [
     {
@@ -35,7 +42,8 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({
       icon: 'list-outline',
       activeIcon: 'list',
       label: 'Foods',
-      onPress: onFoodsPress || (() => {}), // Optional action for foods tab
+      onPress: onFoodsPress || (() => {}),
+      isPremium: false, // Food database is always free
     },
     {
       id: 'recipes',
@@ -43,7 +51,9 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({
       activeIcon: 'restaurant',
       label: 'Recipes',
       onPress: onRecipesPress,
-      badge: recipes.length > 0 ? recipes.length : undefined,
+      badge: subscriptionStatus === 'premium' ? recipes.length : undefined,
+      usageText: subscriptionStatus === 'free' ? `${recipes.length}/1` : undefined,
+      isPremium: subscriptionStatus === 'free' && recipes.length >= 1,
     },
     {
       id: 'chat',
@@ -51,6 +61,8 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({
       activeIcon: 'chatbubble-ellipses',
       label: 'Oracle',
       onPress: onChatPress,
+      usageText: subscriptionStatus === 'free' ? `${getRemainingOracleQuestions()}` : undefined,
+      isPremium: subscriptionStatus === 'free' && getRemainingOracleQuestions() === 0,
     },
     {
       id: 'tracker',
@@ -59,6 +71,8 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({
       label: 'Tracker',
       onPress: onTrackerPress,
       badge: currentDay.items.length > 0 ? currentDay.items.length : undefined,
+      usageText: subscriptionStatus === 'free' ? `${getRemainingTrackingDays()}d` : undefined,
+      isPremium: subscriptionStatus === 'free' && getRemainingTrackingDays() === 0,
     },
   ];
 
@@ -82,11 +96,21 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({
           <Ionicons
             name={isActive ? item.activeIcon : item.icon}
             size={24}
-            color={isActive ? "#3b82f6" : "#6b7280"}
+            color={
+              item.isPremium ? "#ef4444" : 
+              isActive ? "#3b82f6" : "#6b7280"
+            }
           />
           
-          {/* Badge for tracker */}
-          {item.badge && (
+          {/* Premium Lock Indicator */}
+          {item.isPremium && (
+            <View className="absolute -top-1 -right-1 bg-orange-500 rounded-full w-4 h-4 items-center justify-center">
+              <Ionicons name="lock-closed" size={8} color="white" />
+            </View>
+          )}
+          
+          {/* Badge for counters */}
+          {item.badge && !item.isPremium && (
             <View className="absolute -top-1 -right-1 bg-red-500 rounded-full min-w-5 h-5 items-center justify-center">
               <Text className="text-white text-xs font-bold">
                 {item.badge > 99 ? '99+' : item.badge}
@@ -98,11 +122,26 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({
         <Text
           className={cn(
             "text-xs font-medium mt-1",
+            item.isPremium ? "text-red-500" :
             isActive ? "text-blue-600" : "text-gray-600"
           )}
         >
           {item.label}
         </Text>
+        
+        {/* Usage Text */}
+        {item.usageText && !item.isPremium && (
+          <Text className="text-xs text-gray-500 mt-0.5">
+            {item.usageText}
+          </Text>
+        )}
+        
+        {/* Locked Text */}
+        {item.isPremium && (
+          <Text className="text-xs text-red-500 mt-0.5">
+            Locked
+          </Text>
+        )}
       </Pressable>
     );
   };

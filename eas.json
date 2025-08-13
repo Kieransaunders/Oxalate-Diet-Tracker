@@ -5,12 +5,37 @@
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_REVENUECAT_IOS_API_KEY": "YOUR_IOS_API_KEY",
+        "EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY": "YOUR_ANDROID_API_KEY"
+      },
+      "ios": {
+        "simulator": true
+      },
+      "android": {
+        "buildType": "apk"
+      }
     },
     "preview": {
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_REVENUECAT_IOS_API_KEY": "YOUR_IOS_API_KEY",
+        "EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY": "YOUR_ANDROID_API_KEY"
+      }
     },
-    "production": {}
+    "production": {
+      "env": {
+        "EXPO_PUBLIC_REVENUECAT_IOS_API_KEY": "YOUR_PRODUCTION_IOS_API_KEY",
+        "EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY": "YOUR_PRODUCTION_ANDROID_API_KEY"
+      },
+      "ios": {
+        "bundleIdentifier": "uk.co.iconnectit.oxolatediettracker"
+      },
+      "android": {
+        "package": "uk.co.iconnectit.oxolatediettracker"
+      }
+    }
   },
   "submit": {
     "production": {}

@@ -1,4 +1,27 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
 # Oxalate Diet Tracker App
+
+## Development Commands
+
+### Core Development
+- `expo start` - Start the development server with Metro bundler
+- `expo run:ios` - Build and run on iOS simulator/device  
+- `expo run:android` - Build and run on Android emulator/device
+- `expo start --web` - Run web version for quick testing
+
+### Testing
+- `npx jest` - Run all unit tests
+- `npx jest --watch` - Run tests in watch mode during development
+- `npx jest src/state/__tests__/mealStore.test.ts` - Run specific test file
+- `npx jest --coverage` - Generate test coverage reports
+
+### Code Quality
+- `npx eslint .` - Run ESLint on entire codebase
+- `npx eslint src/components/` - Lint specific directory
+- `npx prettier --write .` - Format all code with Prettier
 
 ## Overview
 A comprehensive React Native/Expo mobile application designed to help users manage a low-oxalate diet. The app combines a robust food database, meal tracking, AI-powered dietary guidance, and recipe management to support individuals with kidney stones or other conditions requiring oxalate monitoring.
@@ -36,39 +59,61 @@ A comprehensive React Native/Expo mobile application designed to help users mana
 
 ## Technical Architecture
 
+### State Management with Zustand
+The app uses Zustand for state management with these key stores:
+
+- **`oxalateStore`**: Central food database state with smart caching
+  - Handles online/offline data syncing with 24-hour cache expiration
+  - Supports live API data (324+ foods) and demo fallback
+  - Real-time filtering, searching, and sorting with traffic light categorization
+  - Auto-detects network status and data source type
+
+- **`mealStore`**: Daily meal tracking with persistent storage
+  - Tracks daily oxalate intake with portion calculations
+  - Supports recipe ingredient bulk addition with smart food matching
+  - Provides food lookup by name/aliases with fuzzy matching
+  - Maintains historical meal data
+
+- **`oracleStore`**: AI chat history and context management
+- **`subscriptionStore`**: Premium tier features and usage limits
+- **`recipeStore`**: Recipe storage and management
+
+### Data Flow Patterns
+1. **API Integration**: Primary live API with fallback to comprehensive demo data
+2. **Caching Strategy**: 24-hour cache with offline support using AsyncStorage + MMKV
+3. **Real-time Updates**: Zustand subscriptions trigger UI updates across components
+4. **Error Boundaries**: Graceful degradation with user-friendly fallbacks
+
 ### Frontend Stack
-- **Framework**: React Native 0.79.2 with Expo 53.0.9
+- **Framework**: React Native 0.79.5 with Expo 53.0.20
 - **Navigation**: React Navigation v7 with bottom tabs and stack navigation
-- **Styling**: NativeWind (Tailwind CSS for React Native)
-- **State Management**: Zustand for lightweight, scalable state management
-- **UI Components**: Custom components with Expo Vector Icons
-- **Storage**: MMKV for fast, secure local storage
+- **Styling**: NativeWind (Tailwind CSS for React Native) with `cn()` utility for class merging
+- **Testing**: Jest with React Native Testing Library, custom test utilities and mocks
+- **Storage**: MMKV for performance-critical data, AsyncStorage for persistence
 
-### AI Integration
-- **OpenAI**: GPT-4 models for conversational AI and transcription
-- **Anthropic**: Claude models for dietary analysis and recommendations
-- **Grok**: Additional AI model for diverse perspectives
-- **Image Generation**: GPT-4 image generation for visual assets
+### AI Integration Architecture
+- **Multi-Model Support**: OpenAI GPT-4, Anthropic Claude, and Grok APIs
+- **Context Management**: Food-specific conversations with chat history persistence
+- **Usage Tracking**: Premium tier limits with RevenueCat integration
 
-### Data Management
-- **Local Storage**: Async Storage and MMKV for offline functionality
-- **State Stores**: 
-  - `oxalateStore`: Food database and filtering logic
-  - `mealStore`: Daily meal tracking and history
-  - `oracleStore`: AI chat history and context
+## Testing Architecture
 
-### Key Dependencies
-```json
-{
-  "expo": "53.0.9",
-  "react-native": "0.79.2",
-  "zustand": "^5.0.4",
-  "nativewind": "^4.1.23",
-  "@react-navigation/native": "^7.1.6",
-  "@anthropic-ai/sdk": "^0.39.0",
-  "openai": "^4.89.0"
-}
-```
+### Test Structure
+- **Unit Tests**: Comprehensive coverage for stores, API, utilities, and components
+- **Mock System**: Custom test utilities in `src/test-utils/` for consistent mocking
+- **Test Environment**: Jest with jsdom environment, React Native Testing Library
+
+### Key Testing Patterns
+- **Store Testing**: Uses `renderHook` and `act` for Zustand store testing
+- **Component Testing**: Custom render function with SafeAreaProvider wrapper
+- **API Mocking**: Global fetch mocking with realistic response patterns
+- **Mock Factories**: Pre-built mock objects for foods, meals, recipes, user data
+
+### Critical Testing Areas
+- Online/offline behavior and caching strategies
+- Real-time filtering and search functionality  
+- Premium tier limitations and subscription logic
+- AI integration error handling and fallbacks
 
 ## File Structure
 

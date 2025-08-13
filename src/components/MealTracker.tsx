@@ -10,9 +10,11 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useMealStore } from '../state/mealStore';
 import { useUserPreferencesStore } from '../state/userPreferencesStore';
+import { useSubscriptionStore } from '../state/subscriptionStore';
 import { getCategoryColor, getOxalateCategory } from '../api/oxalate-api';
 import { cn } from '../utils/cn';
 import TrackingProgress from './TrackingProgress';
+import PremiumGate from './PremiumGate';
 
 interface MealTrackerProps {
   visible: boolean;
@@ -30,6 +32,13 @@ const MealTracker: React.FC<MealTrackerProps> = ({ visible, onClose, onOpenSetti
   } = useMealStore();
   
   const { userPreferences, setTargetDailyLimit } = useUserPreferencesStore();
+  const { 
+    status: subscriptionStatus, 
+    canTrack, 
+    startTracking,
+    incrementTrackingDay, 
+    getRemainingTrackingDays 
+  } = useSubscriptionStore();
 
   const [showLimitEditor, setShowLimitEditor] = useState(false);
   const [limitInput, setLimitInput] = useState(userPreferences.targetDailyLimit.toString());
@@ -121,6 +130,15 @@ const MealTracker: React.FC<MealTrackerProps> = ({ visible, onClose, onOpenSetti
           <View className="flex-1">
             <Text className="text-xl font-bold text-gray-900">Daily Tracker</Text>
             <Text className="text-gray-600">{currentDay.date}</Text>
+            {subscriptionStatus === 'premium' ? (
+              <Text className="text-green-600 text-sm">
+                Premium: Unlimited tracking
+              </Text>
+            ) : (
+              <Text className="text-gray-600 text-sm">
+                Free: {getRemainingTrackingDays()} days remaining
+              </Text>
+            )}
           </View>
           <View className="flex-row items-center">
             {onOpenSettings && (
@@ -141,20 +159,48 @@ const MealTracker: React.FC<MealTrackerProps> = ({ visible, onClose, onOpenSetti
         </View>
 
         <ScrollView className="flex-1 px-6 py-6">
-          {/* Help Text */}
-          <View className="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-8">
-            <View className="flex-row items-start">
-              <Ionicons name="analytics" size={20} color="#7c3aed" />
-              <View className="flex-1 ml-3">
-                <Text className="text-purple-900 font-medium text-sm mb-1">
-                  Monitor Your Daily Oxalate Intake
-                </Text>
-                <Text className="text-purple-700 text-xs leading-4">
-                  {getDietAwareHelpText()} Tap "Edit Limit" to customize your target.
-                </Text>
+          {canTrack() ? (
+            <>
+              {/* Help Text */}
+              <View className="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-8">
+                <View className="flex-row items-start">
+                  <Ionicons name="analytics" size={20} color="#7c3aed" />
+                  <View className="flex-1 ml-3">
+                    <Text className="text-purple-900 font-medium text-sm mb-1">
+                      Monitor Your Daily Oxalate Intake
+                    </Text>
+                    <Text className="text-purple-700 text-xs leading-4">
+                      {getDietAwareHelpText()} Tap "Edit Limit" to customize your target.
+                    </Text>
+                  </View>
+                </View>
               </View>
-            </View>
-          </View>
+            </>
+          ) : (
+            <PremiumGate 
+              feature="tracking" 
+              customMessage="Your 7-day free tracking trial has ended. Upgrade to Premium for unlimited meal tracking with progress analytics!"
+            >
+              <View className="opacity-50">
+                <View className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-8">
+                  <View className="flex-row items-start">
+                    <Ionicons name="analytics" size={20} color="#9ca3af" />
+                    <View className="flex-1 ml-3">
+                      <Text className="text-gray-500 font-medium text-sm mb-1">
+                        Tracking Unavailable
+                      </Text>
+                      <Text className="text-gray-400 text-xs leading-4">
+                        Upgrade to Premium to continue tracking your oxalate intake.
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              </View>
+            </PremiumGate>
+          )}
+
+          {canTrack() && (
+            <>
 
           {/* 7-Day Progress Overview */}
           <View className="mb-8">
@@ -235,6 +281,8 @@ const MealTracker: React.FC<MealTrackerProps> = ({ visible, onClose, onOpenSetti
               </View>
             )}
           </View>
+            </>
+          )}
         </ScrollView>
 
         {/* Limit Editor Modal */}

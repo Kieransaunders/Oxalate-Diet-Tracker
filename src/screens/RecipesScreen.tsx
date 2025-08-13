@@ -13,10 +13,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRecipeStore } from '../state/recipeStore';
 import { useMealStore } from '../state/mealStore';
 import { useOxalateStore } from '../state/oxalateStore';
+import { useSubscriptionStore } from '../state/subscriptionStore';
 import { getCategoryColor, getCategoryBackgroundColor } from '../api/oxalate-api';
 import { cn } from '../utils/cn';
 import RecipeGeneratorScreen from './RecipeGeneratorScreen';
 import EditRecipeModal from '../components/EditRecipeModal';
+import PremiumGate from '../components/PremiumGate';
 import type { Recipe } from '../types/recipe';
 
 interface RecipesScreenProps {
@@ -41,10 +43,17 @@ const RecipesScreen: React.FC<RecipesScreenProps> = ({ onClose, onNavigateToTrac
     toggleFavorite,
     deleteRecipe,
     getFilteredRecipes,
+    recipes,
   } = useRecipeStore();
   
   const { addRecipeIngredients } = useMealStore();
   const { foods } = useOxalateStore();
+  const { 
+    status: subscriptionStatus, 
+    canCreateRecipe, 
+    incrementRecipeCount, 
+    getRemainingRecipes 
+  } = useSubscriptionStore();
 
   const filteredRecipes = getFilteredRecipes();
 
@@ -246,6 +255,15 @@ const RecipesScreen: React.FC<RecipesScreenProps> = ({ onClose, onNavigateToTrac
             <Text className="text-2xl font-bold text-gray-900 mb-2">
               My Recipes
             </Text>
+            {subscriptionStatus === 'premium' ? (
+              <Text className="text-green-600 text-sm">
+                Premium: Unlimited recipes
+              </Text>
+            ) : (
+              <Text className="text-gray-600 text-sm">
+                Free: {recipes.length}/1 recipe used
+              </Text>
+            )}
             <Text className="text-gray-600">
               {filteredRecipes.length} saved recipes
             </Text>
@@ -333,13 +351,34 @@ const RecipesScreen: React.FC<RecipesScreenProps> = ({ onClose, onNavigateToTrac
       </ScrollView>
 
       {/* Floating Action Button - Generate Recipe */}
-      <Pressable
-        onPress={() => setShowRecipeGenerator(true)}
-        className="absolute bottom-6 right-6 w-14 h-14 bg-green-500 rounded-full items-center justify-center shadow-lg"
-        style={{ elevation: 5 }}
-      >
-        <Ionicons name="add" size={28} color="white" />
-      </Pressable>
+      {canCreateRecipe() ? (
+        <Pressable
+          onPress={() => {
+            if (subscriptionStatus === 'free') {
+              incrementRecipeCount();
+            }
+            setShowRecipeGenerator(true);
+          }}
+          className="absolute bottom-6 right-6 w-14 h-14 bg-green-500 rounded-full items-center justify-center shadow-lg"
+          style={{ elevation: 5 }}
+        >
+          <Ionicons name="add" size={28} color="white" />
+        </Pressable>
+      ) : (
+        <PremiumGate 
+          feature="recipes" 
+          showUpgradePrompt={true}
+          customMessage="You've created your 1 free recipe. Upgrade to Premium for unlimited recipe storage!"
+        >
+          <Pressable
+            onPress={() => {}}
+            className="absolute bottom-6 right-6 w-14 h-14 bg-gray-400 rounded-full items-center justify-center shadow-lg opacity-50"
+            style={{ elevation: 5 }}
+          >
+            <Ionicons name="lock-closed" size={28} color="white" />
+          </Pressable>
+        </PremiumGate>
+      )}
 
       {/* Recipe Generator Modal */}
       <RecipeGeneratorScreen
