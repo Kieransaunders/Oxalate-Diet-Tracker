@@ -1,10 +1,41 @@
 import { act, renderHook } from '@testing-library/react-native';
 import { useMealStore } from '../mealStore';
-import { createMockFood, createMockAsyncStorage } from '../../test-utils';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { createMockFood } from '../../test-utils';
 
 // Mock AsyncStorage
-jest.mock('@react-native-async-storage/async-storage', () => createMockAsyncStorage());
+jest.mock('@react-native-async-storage/async-storage', () => {
+  const storage: Record<string, string> = {};
+  
+  return {
+    getItem: jest.fn((key: string) => Promise.resolve(storage[key] || null)),
+    setItem: jest.fn((key: string, value: string) => {
+      storage[key] = value;
+      return Promise.resolve();
+    }),
+    removeItem: jest.fn((key: string) => {
+      delete storage[key];
+      return Promise.resolve();
+    }),
+    clear: jest.fn(() => {
+      Object.keys(storage).forEach(key => delete storage[key]);
+      return Promise.resolve();
+    }),
+    getAllKeys: jest.fn(() => Promise.resolve(Object.keys(storage))),
+    multiGet: jest.fn((keys: string[]) => 
+      Promise.resolve(keys.map(key => [key, storage[key] || null]))
+    ),
+    multiSet: jest.fn((keyValuePairs: [string, string][]) => {
+      keyValuePairs.forEach(([key, value]) => {
+        storage[key] = value;
+      });
+      return Promise.resolve();
+    }),
+    multiRemove: jest.fn((keys: string[]) => {
+      keys.forEach(key => delete storage[key]);
+      return Promise.resolve();
+    }),
+  };
+});
 
 describe('mealStore', () => {
   beforeEach(() => {
@@ -217,13 +248,13 @@ describe('mealStore', () => {
         servings: 4,
       };
 
-      let addResult;
+      let addResult: any;
       act(() => {
         addResult = result.current.addRecipeIngredients(recipe, mockFoodDatabase);
       });
 
-      expect(addResult.added).toBe(3);
-      expect(addResult.notFound).toHaveLength(0);
+      expect(addResult?.added).toBe(3);
+      expect(addResult?.notFound).toHaveLength(0);
       expect(result.current.currentDay.items).toHaveLength(3);
     });
 
@@ -239,13 +270,13 @@ describe('mealStore', () => {
         servings: 2,
       };
 
-      let addResult;
+      let addResult: any;
       act(() => {
         addResult = result.current.addRecipeIngredients(recipe, mockFoodDatabase);
       });
 
-      expect(addResult.added).toBe(1);
-      expect(addResult.notFound).toEqual(['unknown ingredient']);
+      expect(addResult?.added).toBe(1);
+      expect(addResult?.notFound).toEqual(['unknown ingredient']);
       expect(result.current.currentDay.items).toHaveLength(1);
     });
 
@@ -261,12 +292,12 @@ describe('mealStore', () => {
         servings: 1,
       };
 
-      let addResult;
+      let addResult: any;
       act(() => {
         addResult = result.current.addRecipeIngredients(recipe, mockFoodDatabase);
       });
 
-      expect(addResult.added).toBe(2);
+      expect(addResult?.added).toBe(2);
       expect(result.current.currentDay.items[0].food.name).toBe('Eggs');
       expect(result.current.currentDay.items[1].food.name).toBe('White Rice');
     });

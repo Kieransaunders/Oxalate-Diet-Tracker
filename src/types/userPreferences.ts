@@ -27,7 +27,7 @@ export interface UserPreferencesStore {
   // Actions
   setDietType: (dietType: DietType) => void;
   setTargetDailyLimit: (limit: number) => void;
-  setMedicalCondition: (condition: MedicalCondition) => void;
+  setMedicalCondition: (condition: MedicalCondition | undefined) => void;
   updatePreferences: (preferences: Partial<UserPreferences['preferences']>) => void;
   updateProfile: (profile: Partial<UserPreferences['profile']>) => void;
   resetToDefaults: () => void;

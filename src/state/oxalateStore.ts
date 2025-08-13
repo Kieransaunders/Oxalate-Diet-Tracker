@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Network from 'expo-network';
-import { OxalateStore, OxalateFoodItem, OxalateCategory } from '../types/oxalate';
+import { OxalateStore, OxalateCategory } from '../types/oxalate';
 import { fetchOxalateFoods, searchOxalateFoods } from '../api/oxalate-api';
 
 export const useOxalateStore = create<OxalateStore>()(

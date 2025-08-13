@@ -27,6 +27,7 @@ import OracleScreen from './OracleScreen';
 import BottomNavigation from '../components/BottomNavigation';
 import RecipesScreen from './RecipesScreen';
 import SettingsScreen from './SettingsScreen';
+import PaywallModal from '../components/PaywallModal';
 import type { OxalateCategory, OxalateFoodItem } from '../types/oxalate';
 import type { DietType } from '../types/userPreferences';
 
@@ -38,6 +39,7 @@ const OxalateTableScreen = () => {
   const [showOracle, setShowOracle] = useState(false);
   const [showRecipes, setShowRecipes] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showPaywall, setShowPaywall] = useState(false);
   const [oracleContextFood, setOracleContextFood] = useState<string | undefined>(undefined);
   const [groupByCategory, setGroupByCategory] = useState(false);
   const [showRecommendedOnly, setShowRecommendedOnly] = useState(false);
@@ -777,6 +779,13 @@ const OxalateTableScreen = () => {
       <SettingsScreen 
         visible={showSettings}
         onClose={() => setShowSettings(false)}
+      />
+
+      {/* Paywall Modal - Rendered at top level to avoid nested modal issues */}
+      <PaywallModal
+        visible={showPaywall}
+        onClose={() => setShowPaywall(false)}
+        feature="oracle"
       />
     </View>
   );

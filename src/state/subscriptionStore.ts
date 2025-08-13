@@ -107,39 +107,15 @@ const getDaysDifference = (startDate: string): number => {
 export const useSubscriptionStore = create<SubscriptionStore>()(
   persist(
     (set, get) => ({
-      status: 'loading',
+      status: 'premium', // Default to premium for development
       customerInfo: null,
       offerings: null,
       usageLimits: getInitialUsageLimits(),
 
       initializePurchases: async () => {
-        try {
-          set({ status: 'loading' });
-          
-          if (!Purchases) {
-            console.warn('Purchases module not available, setting to free tier');
-            set({ status: 'free' });
-            return;
-          }
-          
-          // Will be configured when RevenueCat is set up
-          const customerInfo = await Purchases.getCustomerInfo();
-          const offerings = await Purchases.getOfferings();
-          
-          const isPremium = customerInfo.entitlements.active['premium'] !== undefined;
-          
-          set({
-            status: isPremium ? 'premium' : 'free',
-            customerInfo,
-            offerings: offerings.all ? Object.values(offerings.all) : null,
-          });
-          
-          // Reset daily limits if needed
-          get().resetDailyLimits();
-        } catch (error) {
-          console.error('Failed to initialize purchases:', error);
-          set({ status: 'free' });
-        }
+        // RevenueCat disabled for development - Oracle is unlocked
+        console.log('Purchases initialization skipped - running in unlimited mode');
+        set({ status: 'premium' });
       },
 
       restorePurchases: async () => {
@@ -195,61 +171,12 @@ export const useSubscriptionStore = create<SubscriptionStore>()(
       },
 
       incrementOracleQuestions: () => {
-        const { status, usageLimits } = get();
-        
-        if (status === 'premium') return true;
-        
-        // Reset daily count if it's a new day
-        if (!isToday(usageLimits.oracleQuestions.lastResetDate)) {
-          set({
-            usageLimits: {
-              ...usageLimits,
-              oracleQuestions: {
-                ...usageLimits.oracleQuestions,
-                todayCount: 0,
-                lastResetDate: new Date().toISOString().split('T')[0],
-              },
-            },
-          });
-        }
-        
-        const updatedLimits = get().usageLimits;
-        if (updatedLimits.oracleQuestions.todayCount >= updatedLimits.oracleQuestions.dailyLimit) {
-          return false;
-        }
-        
-        set({
-          usageLimits: {
-            ...updatedLimits,
-            oracleQuestions: {
-              ...updatedLimits.oracleQuestions,
-              todayCount: updatedLimits.oracleQuestions.todayCount + 1,
-            },
-          },
-        });
-        
+        // Oracle is unlocked - always allow questions
         return true;
       },
 
       incrementRecipeCount: () => {
-        const { status, usageLimits } = get();
-        
-        if (status === 'premium') return true;
-        
-        if (usageLimits.recipes.currentCount >= usageLimits.recipes.freeLimit) {
-          return false;
-        }
-        
-        set({
-          usageLimits: {
-            ...usageLimits,
-            recipes: {
-              ...usageLimits.recipes,
-              currentCount: usageLimits.recipes.currentCount + 1,
-            },
-          },
-        });
-        
+        // Recipe generation unlocked for testing - always allow
         return true;
       },
 
@@ -308,24 +235,13 @@ export const useSubscriptionStore = create<SubscriptionStore>()(
       },
 
       canAskOracleQuestion: () => {
-        const { status, usageLimits } = get();
-        
-        if (status === 'premium') return true;
-        
-        // Reset daily count if it's a new day
-        if (!isToday(usageLimits.oracleQuestions.lastResetDate)) {
-          return true; // New day, so they can ask
-        }
-        
-        return usageLimits.oracleQuestions.todayCount < usageLimits.oracleQuestions.dailyLimit;
+        // Oracle is now unlocked - always return true
+        return true;
       },
 
       canCreateRecipe: () => {
-        const { status, usageLimits } = get();
-        
-        if (status === 'premium') return true;
-        
-        return usageLimits.recipes.currentCount < usageLimits.recipes.freeLimit;
+        // Recipe creation unlocked for testing - always allow
+        return true;
       },
 
       canTrack: () => {
@@ -340,24 +256,13 @@ export const useSubscriptionStore = create<SubscriptionStore>()(
       },
 
       getRemainingOracleQuestions: () => {
-        const { status, usageLimits } = get();
-        
-        if (status === 'premium') return 999; // Unlimited
-        
-        // Reset count if it's a new day
-        if (!isToday(usageLimits.oracleQuestions.lastResetDate)) {
-          return usageLimits.oracleQuestions.dailyLimit;
-        }
-        
-        return Math.max(0, usageLimits.oracleQuestions.dailyLimit - usageLimits.oracleQuestions.todayCount);
+        // Oracle is unlocked - unlimited questions
+        return 999;
       },
 
       getRemainingRecipes: () => {
-        const { status, usageLimits } = get();
-        
-        if (status === 'premium') return 999; // Unlimited
-        
-        return Math.max(0, usageLimits.recipes.freeLimit - usageLimits.recipes.currentCount);
+        // Recipe generation unlocked for testing - unlimited
+        return 999;
       },
 
       getRemainingTrackingDays: () => {

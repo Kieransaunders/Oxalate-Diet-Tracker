@@ -11,8 +11,8 @@ const mockUseSubscriptionStore = useSubscriptionStore as jest.MockedFunction<typ
 jest.mock('../PaywallModal', () => {
   return function MockPaywallModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
     return visible ? (
-      <div data-testid=\"paywall-modal\">
-        <button onPress={onClose}>Close Paywall</button>
+      <div data-testid="paywall-modal">
+        <button onClick={onClose}>Close Paywall</button>
       </div>
     ) : null;
   };
@@ -44,7 +44,7 @@ describe('PremiumGate', () => {
       } as any);
 
       render(
-        <PremiumGate feature=\"oracle\">
+        <PremiumGate feature="oracle">
           <TestChild />
         </PremiumGate>
       );
@@ -56,7 +56,7 @@ describe('PremiumGate', () => {
   describe('free users with access', () => {
     it('should show content when oracle questions available', () => {
       render(
-        <PremiumGate feature=\"oracle\">
+        <PremiumGate feature="oracle">
           <TestChild />
         </PremiumGate>
       );
@@ -94,7 +94,7 @@ describe('PremiumGate', () => {
       } as any);
 
       render(
-        <PremiumGate feature=\"oracle\">
+        <PremiumGate feature="oracle">
           <TestChild />
         </PremiumGate>
       );
@@ -166,7 +166,7 @@ describe('PremiumGate', () => {
       } as any);
 
       render(
-        <PremiumGate feature=\"oracle\">
+        <PremiumGate feature="oracle">
           <TestChild />
         </PremiumGate>
       );
@@ -185,7 +185,7 @@ describe('PremiumGate', () => {
       } as any);
 
       render(
-        <PremiumGate feature=\"oracle\">
+        <PremiumGate feature="oracle">
           <TestChild />
         </PremiumGate>
       );
@@ -228,7 +228,7 @@ describe('PremiumGate', () => {
       } as any);
 
       render(
-        <PremiumGate feature=\"oracle\">
+        <PremiumGate feature="oracle">
           <TestChild />
         </PremiumGate>
       );

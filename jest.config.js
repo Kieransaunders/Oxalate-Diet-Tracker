@@ -1,13 +1,24 @@
+const { defaults } = require('jest-config');
+
 module.exports = {
-  preset: 'jest-expo',
-  testEnvironment: 'jsdom',
-  setupFiles: ['<rootDir>/jest-polyfills.js'],
+  preset: 'react-native',
+  setupFiles: [
+    '<rootDir>/jest-polyfills.js'
+  ],
   setupFilesAfterEnv: [
     '<rootDir>/jest-setup.ts'
   ],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
+  transform: {
+    '^.+\\.(ts|tsx)$': ['ts-jest', {
+      tsconfig: {
+        jsx: 'react'
+      }
+    }],
+    '^.+\\.(js|jsx)$': 'babel-jest'
+  },
   transformIgnorePatterns: [
-    'node_modules/(?!(.*\\.mjs$|@expo|expo|react-native|@react-native|@react-navigation|react-navigation|@react-native-async-storage|@react-native-clipboard|@shopify/flash-list|@anthropic-ai|openai|zustand|react-native-purchases|react-native-mmkv|react-native-reanimated|lottie-react-native|nativewind)/)',
+    'node_modules/(?!(react-native|@react-native|@expo|expo|@react-navigation|@react-native-async-storage|@react-native-clipboard|react-native-reanimated|react-native-gesture-handler|react-native-screens|react-native-safe-area-context|@shopify/flash-list|zustand|react-native-purchases|react-native-mmkv|nativewind)/)'
   ],
   testMatch: [
     '**/__tests__/**/*.(ts|tsx|js)',

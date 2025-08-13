@@ -203,6 +203,39 @@ const getCategoryColor = (category: OxalateCategory) => {
 - Hot reloading for rapid development
 - Comprehensive error handling and fallbacks
 
+## Known Issues & Solutions
+
+### iOS Networking with AbortController
+**Issue**: React Native's `AbortController` and `setTimeout` combination causes frequent `AbortError` timeouts on iOS, even when the API responds quickly (2-3 seconds).
+
+**Symptoms**:
+- `ERROR Recipe Generation API Error: [AbortError: Aborted]`
+- APIs timeout after set duration despite fast external response (curl works fine)
+- Inconsistent behavior between iOS simulator/device and direct API testing
+
+**Solution**: 
+Use simple `fetch()` without `AbortController` or timeout logic:
+
+```typescript
+// ❌ Problematic - causes AbortError on iOS
+const controller = new AbortController();
+const timeoutId = setTimeout(() => controller.abort(), 60000);
+const response = await fetch(url, { 
+  signal: controller.signal 
+});
+
+// ✅ Working solution - simple fetch
+const response = await fetch(url, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify(data)
+});
+```
+
+**Applied to**: Oracle API (`chat-oracle-api.ts`) and Recipe Generation API (`recipe-generator-api.ts`)
+
+**Root Cause**: iOS React Native networking layer has timing issues with AbortController implementation, causing premature request cancellation.
+
 ## Target Users
 - Individuals with kidney stones
 - People following low-oxalate diets

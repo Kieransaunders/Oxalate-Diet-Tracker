@@ -8,7 +8,7 @@ interface OracleStore {
   messages: ChatMessage[];
   isLoading: boolean;
   streamingMessageId: string | null;
-  
+
   // Actions
   addMessage: (text: string, isUser: boolean) => void;
   sendMessage: (text: string, systemContext?: string) => Promise<void>;
@@ -20,14 +20,7 @@ interface OracleStore {
 export const useOracleStore = create<OracleStore>()(
   persist(
     (set, get) => ({
-      messages: [
-        {
-          id: 'welcome',
-          text: "🔮 Welcome, seeker of oxalate wisdom! I am the Oxalate Oracle, your guide through the mysteries of low-oxalate living. Ask me anything about foods, daily limits, cooking methods, or managing your oxalate journey.",
-          isUser: false,
-          timestamp: Date.now(),
-        }
-      ],
+      messages: [],
       isLoading: false,
       streamingMessageId: null,
 
@@ -44,19 +37,19 @@ export const useOracleStore = create<OracleStore>()(
         }));
       },
 
-      sendMessage: async (text: string) => {
+      sendMessage: async (text: string, systemContext?: string) => {
         const { addMessage } = get();
-        
+
         // Add user message
         addMessage(text, true);
-        
+
         // Set loading state
         set({ isLoading: true });
 
         try {
-          // Query the Oracle API
-          const response = await queryOxalateOracle(text);
-          
+          // Query the Oracle API with optimized endpoint
+          const response = await queryOxalateOracle(text, systemContext);
+
           // Add Oracle response
           if (response.text) {
             addMessage(response.text, false);
@@ -74,17 +67,18 @@ export const useOracleStore = create<OracleStore>()(
         }
       },
 
-      sendMessageStreaming: async (text: string) => {
+      sendMessageStreaming: async (text: string, systemContext?: string) => {
         const { addMessage, isLoading, streamingMessageId } = get();
-        
+
         // Prevent duplicate requests
         if (isLoading || streamingMessageId) {
           return;
         }
-        
-        // Add user message
-        addMessage(text, true);
-        
+
+        try {
+          // Add user message
+          addMessage(text, true);
+
         // Create empty Oracle message for streaming
         const oracleMessageId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         const oracleMessage: ChatMessage = {
@@ -102,13 +96,13 @@ export const useOracleStore = create<OracleStore>()(
 
         try {
           let fullText = '';
-          
+
           await queryOxalateOracleStreaming(text, {
             onToken: (token: string) => {
               fullText += token;
               set((state) => ({
-                messages: state.messages.map(msg => 
-                  msg.id === oracleMessageId 
+                messages: state.messages.map(msg =>
+                  msg.id === oracleMessageId
                     ? { ...msg, text: fullText }
                     : msg
                 )
@@ -116,8 +110,8 @@ export const useOracleStore = create<OracleStore>()(
             },
             onComplete: (completedText: string) => {
               set((state) => ({
-                messages: state.messages.map(msg => 
-                  msg.id === oracleMessageId 
+                messages: state.messages.map(msg =>
+                  msg.id === oracleMessageId
                     ? { ...msg, text: completedText }
                     : msg
                 ),
@@ -142,8 +136,9 @@ export const useOracleStore = create<OracleStore>()(
                 streamingMessageId: null,
               }));
             }
-          });
+          }, systemContext);
         } catch (error) {
+          console.error('Oracle streaming error:', error);
           // Fallback to Oracle wisdom
           const wisdom = getOracleWisdom(text);
           set((state) => ({
@@ -160,18 +155,19 @@ export const useOracleStore = create<OracleStore>()(
             streamingMessageId: null,
           }));
         }
+      } catch (error) {
+        console.error('Oracle sendMessageStreaming error:', error);
+        // Ensure we clean up state even if there's an error
+        set({
+          isLoading: false,
+          streamingMessageId: null,
+        });
+      }
       },
 
       clearChat: () => {
         set({
-          messages: [
-            {
-              id: 'welcome',
-              text: "🔮 Welcome back, seeker! The Oxalate Oracle is ready to share wisdom about your low-oxalate journey. What knowledge do you seek?",
-              isUser: false,
-              timestamp: Date.now(),
-            }
-          ],
+          messages: [],
           streamingMessageId: null,
           isLoading: false,
         });

@@ -3,7 +3,6 @@ import { persist } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { RecipeStore, Recipe, RecipeIngredient } from '../types/recipe';
 import { getOxalateCategory } from '../api/oxalate-api';
-import type { OxalateCategory } from '../types/oxalate';
 
 export const useRecipeStore = create<RecipeStore>()(
   persist(

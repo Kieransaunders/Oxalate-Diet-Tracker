@@ -3,7 +3,6 @@ import { persist } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { 
   UserPreferencesStore, 
-  UserPreferences, 
   defaultUserPreferences,
   DietType,
   MedicalCondition,
@@ -54,7 +53,7 @@ export const useUserPreferencesStore = create<UserPreferencesStore>()(
         }));
       },
 
-      setMedicalCondition: (condition: MedicalCondition) => {
+      setMedicalCondition: (condition: MedicalCondition | undefined) => {
         set((state) => ({
           userPreferences: {
             ...state.userPreferences,
@@ -122,8 +121,9 @@ export const useUserPreferencesStore = create<UserPreferencesStore>()(
 
       // Getters
       getOracleSystemPrompt: () => {
-        const { dietType, medicalCondition, preferences } = get().userPreferences;
-        const personality = preferences.oraclePersonality;
+        try {
+          const { dietType, medicalCondition, preferences } = get().userPreferences;
+          const personality = preferences?.oraclePersonality || 'balanced';
 
         let basePrompt = "You are the Oxalate Oracle, a knowledgeable and helpful nutrition assistant specializing in oxalate content and dietary guidance.";
 
@@ -174,6 +174,11 @@ export const useUserPreferencesStore = create<UserPreferencesStore>()(
         basePrompt += " Always provide specific, actionable advice with oxalate content numbers when possible. Be encouraging and supportive in your responses.";
 
         return basePrompt;
+        } catch (error) {
+          console.error('Error generating Oracle system prompt:', error);
+          // Return a safe default prompt
+          return "You are the Oxalate Oracle, a knowledgeable and helpful nutrition assistant specializing in oxalate content and dietary guidance. Provide balanced, practical advice about oxalate management and nutrition.";
+        }
       },
 
       getDefaultRecipeType: () => {

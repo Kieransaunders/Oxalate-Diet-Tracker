@@ -16,8 +16,8 @@ import { useOracleStore } from '../state/oracleStore';
 import { useMealStore } from '../state/mealStore';
 import { useUserPreferencesStore } from '../state/userPreferencesStore';
 import { useSubscriptionStore } from '../state/subscriptionStore';
-import { enhanceQuestionWithContext, quickOracleQuestions } from '../api/chat-oracle-api';
-import PremiumGate from '../components/PremiumGate';
+import { enhanceQuestionWithContext, quickOracleQuestions, popularOracleQuestions } from '../api/chat-oracle-api';
+// import PremiumGate from '../components/PremiumGate'; // Not currently used
 import { cn } from '../utils/cn';
 
 interface OracleScreenProps {
@@ -30,6 +30,7 @@ const OracleScreen: React.FC<OracleScreenProps> = ({ visible, onClose, contextFo
   const insets = useSafeAreaInsets();
   const [inputText, setInputText] = useState('');
   const [showQuickQuestions, setShowQuickQuestions] = useState(true);
+  const [showDisclaimer, setShowDisclaimer] = useState(true);
   const scrollViewRef = useRef<ScrollView>(null);
   
   const { messages, isLoading, streamingMessageId, sendMessageStreaming, clearChat } = useOracleStore();
@@ -38,8 +39,8 @@ const OracleScreen: React.FC<OracleScreenProps> = ({ visible, onClose, contextFo
   const { 
     status: subscriptionStatus, 
     canAskOracleQuestion, 
-    incrementOracleQuestions, 
-    getRemainingOracleQuestions 
+    incrementOracleQuestions 
+    // getRemainingOracleQuestions // Not currently used
   } = useSubscriptionStore();
 
   // Dynamic Oracle title based on user's diet type
@@ -58,7 +59,7 @@ const OracleScreen: React.FC<OracleScreenProps> = ({ visible, onClose, contextFo
     }
   };
 
-  // Diet-aware quick questions
+  // Diet-aware quick questions with more comprehensive options
   const getDietAwareQuickQuestions = () => {
     const { dietType } = userPreferences;
     
@@ -68,7 +69,9 @@ const OracleScreen: React.FC<OracleScreenProps> = ({ visible, onClose, contextFo
           "What are the best low-oxalate breakfast options?",
           "Which cooking methods reduce oxalate content?",
           "What are safe daily oxalate limits for kidney stone prevention?",
-          "How can I get enough nutrients on a low-oxalate diet?",
+          "Can I eat spinach on a low-oxalate diet?",
+          "What are good substitutes for high-oxalate foods?",
+          "Should I take calcium with meals?",
         ];
       case 'moderate-oxalate':
         return [
@@ -76,6 +79,8 @@ const OracleScreen: React.FC<OracleScreenProps> = ({ visible, onClose, contextFo
           "What foods can I eat occasionally on a moderate approach?",
           "How do I plan balanced meals with oxalate awareness?",
           "What portion sizes work for moderate oxalate foods?",
+          "Are nuts and seeds okay in moderation?",
+          "How do I meal prep for balanced oxalate eating?",
         ];
       case 'high-oxalate':
         return [
@@ -83,6 +88,8 @@ const OracleScreen: React.FC<OracleScreenProps> = ({ visible, onClose, contextFo
           "How should I pair oxalate-rich foods with calcium?",
           "What are the best preparation methods for nutrient absorption?",
           "How do I optimize nutrition from oxalate-rich vegetables?",
+          "Can I still enjoy chocolate and tea?",
+          "What supplements help with oxalate absorption?",
         ];
       case 'unrestricted':
         return [
@@ -90,9 +97,11 @@ const OracleScreen: React.FC<OracleScreenProps> = ({ visible, onClose, contextFo
           "How do oxalates affect different people?",
           "What's the science behind oxalate metabolism?",
           "Are there any benefits to tracking oxalate intake?",
+          "Should I be concerned about oxalates in my diet?",
+          "How do I know if I'm sensitive to oxalates?",
         ];
       default:
-        return quickOracleQuestions.slice(0, 4);
+        return popularOracleQuestions.slice(0, 6);
     }
   };
 
@@ -137,12 +146,13 @@ const OracleScreen: React.FC<OracleScreenProps> = ({ visible, onClose, contextFo
 
       let messageText = inputText.trim();
       
-      // Add context about current meal and viewed food
-      messageText = enhanceQuestionWithContext(messageText, currentDay.items, contextFood);
+      // Keep original question for speed - context is handled by system prompt
+      // messageText = enhanceQuestionWithContext(messageText, currentDay.items, contextFood);
       
       setInputText('');
       setShowQuickQuestions(false);
       
+      // Use streaming for better user experience
       await sendMessageStreaming(messageText);
     }
   };
@@ -163,10 +173,11 @@ const OracleScreen: React.FC<OracleScreenProps> = ({ visible, onClose, contextFo
       }
     }
     
-    // Add context to quick questions
-    const contextualQuestion = enhanceQuestionWithContext(question, currentDay.items, contextFood);
+    // Use question directly for speed - context handled by system prompt
+    const contextualQuestion = question;
     
     setShowQuickQuestions(false);
+    // Use streaming for better user experience
     await sendMessageStreaming(contextualQuestion);
   };
 
@@ -267,35 +278,43 @@ const OracleScreen: React.FC<OracleScreenProps> = ({ visible, onClose, contextFo
         >
           <View className="flex-row items-center justify-between">
             <View className="flex-1">
-              <View className="flex-row items-center">
+              <View className="flex-row items-center mb-2">
                 <Text className="text-3xl mr-3">🔮</Text>
-                <View>
+                <View className="flex-1">
                   <Text className="text-xl font-bold text-white">
                     {getOracleTitle()}
                   </Text>
-                  <Text className="text-purple-100 text-sm">
-                    {contextFood 
-                      ? `Consulting about: ${contextFood}`
-                      : currentDay.items.length > 0
-                        ? `Tracking ${currentDay.items.length} foods today`
-                        : "Your mystical nutrition guide"
-                    }
-                  </Text>
                 </View>
               </View>
+              
+
             </View>
             
             <View className="flex-row items-center space-x-3">
               <Pressable
                 onPress={clearChat}
-                className="w-8 h-8 items-center justify-center rounded-full bg-purple-500"
+                style={{
+                  width: 32,
+                  height: 32,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: 16,
+                  backgroundColor: '#8b5cf6'
+                }}
               >
                 <Ionicons name="refresh" size={16} color="white" />
               </Pressable>
               
               <Pressable
                 onPress={onClose}
-                className="w-8 h-8 items-center justify-center rounded-full bg-purple-500"
+                style={{
+                  width: 32,
+                  height: 32,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: 16,
+                  backgroundColor: '#8b5cf6'
+                }}
               >
                 <Ionicons name="close" size={18} color="white" />
               </Pressable>
@@ -303,26 +322,48 @@ const OracleScreen: React.FC<OracleScreenProps> = ({ visible, onClose, contextFo
           </View>
         </View>
 
-        {/* Help Banner */}
+        {/* Tracking Info Banner */}
         <View className="bg-purple-50 border-b border-purple-200 px-4 py-3">
           <View className="flex-row items-start">
             <Ionicons name="sparkles" size={18} color="#8b5cf6" />
             <View className="flex-1 ml-3">
               <Text className="text-purple-900 font-medium text-sm">
-                🧙‍♂️ Ask the Oracle about oxalates, foods, and nutrition wisdom
+                {contextFood 
+                  ? `Consulting about: ${contextFood}`
+                  : currentDay.items.length > 0
+                    ? `${currentDay.items.length} foods tracked • ${currentDay.totalOxalate.toFixed(1)}mg oxalate • ${userPreferences.dietType.replace('-', ' ')} diet`
+                    : `${userPreferences.dietType.replace('-', ' ')} diet • Ask the Oracle about oxalates, foods, and nutrition wisdom`
+                }
               </Text>
-              {subscriptionStatus === 'premium' ? (
-                <Text className="text-purple-700 text-xs mt-1">
-                  Premium: Unlimited questions available
-                </Text>
-              ) : (
-                <Text className="text-purple-700 text-xs mt-1">
-                  Free: {getRemainingOracleQuestions()} questions remaining today
-                </Text>
-              )}
             </View>
           </View>
         </View>
+
+        {/* Medical Disclaimer */}
+        {showDisclaimer && (
+          <View className="bg-amber-50 border-b border-amber-200 px-4 py-3">
+            <View className="flex-row items-start">
+              <Ionicons name="warning" size={16} color="#f59e0b" />
+              <View className="flex-1 ml-3">
+                <Text className="text-amber-800 text-xs leading-4">
+                  <Text className="font-semibold">Disclaimer:</Text> For informational purposes only. Consult your healthcare provider for medical advice.
+                </Text>
+              </View>
+              <Pressable
+                onPress={() => setShowDisclaimer(false)}
+                style={{
+                  width: 20,
+                  height: 20,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginLeft: 8
+                }}
+              >
+                <Ionicons name="close" size={14} color="#f59e0b" />
+              </Pressable>
+            </View>
+          </View>
+        )}
 
         {/* Chat Messages */}
         <ScrollView
@@ -340,8 +381,13 @@ const OracleScreen: React.FC<OracleScreenProps> = ({ visible, onClose, contextFo
           {showQuickQuestions && messages.length <= 1 && (
             <View className="px-4 pb-4">
               <Text className="text-lg font-semibold text-gray-900 mb-3">
-                {contextFood ? `Oracle Wisdom about ${contextFood}` : 'Consult the Oracle'}
+                {contextFood ? `Oracle Wisdom about ${contextFood}` : '🔮 Ask the Oxalate Oracle'}
               </Text>
+              {!contextFood && (
+                <Text className="text-sm text-gray-600 mb-4">
+                  Get instant answers about oxalates, foods, and dietary guidance. Choose a question below or ask your own!
+                </Text>
+              )}
               <View className="space-y-2">
                 {(contextFood ? [
                   `Is ${contextFood} safe for my ${userPreferences.dietType.replace('-', ' ')} diet?`,
@@ -356,14 +402,25 @@ const OracleScreen: React.FC<OracleScreenProps> = ({ visible, onClose, contextFo
                   <Pressable
                     key={index}
                     onPress={() => handleQuickQuestion(question)}
-                    className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg p-3"
+                    style={{
+                      backgroundColor: '#faf5ff',
+                      borderWidth: 1,
+                      borderColor: '#e9d5ff',
+                      borderRadius: 8,
+                      padding: 12
+                    }}
                   >
                     <Text className="text-purple-800 font-medium">{question}</Text>
                   </Pressable>
                 ))}
               </View>
               
-              <Pressable className="mt-3 items-center">
+              <Pressable 
+                style={{ 
+                  marginTop: 12, 
+                  alignItems: 'center' 
+                }}
+              >
                 <Text className="text-purple-500 text-sm">
                   Or ask your own question to the Oracle...
                 </Text>
@@ -393,12 +450,14 @@ const OracleScreen: React.FC<OracleScreenProps> = ({ visible, onClose, contextFo
               <Pressable
                 onPress={handleSendMessage}
                 disabled={!inputText.trim() || isLoading}
-                className={cn(
-                  "w-12 h-12 rounded-full items-center justify-center",
-                  inputText.trim() && !isLoading
-                    ? "bg-gradient-to-r from-purple-500 to-blue-500"
-                    : "bg-gray-300"
-                )}
+                style={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: 24,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: inputText.trim() && !isLoading ? '#8b5cf6' : '#d1d5db',
+                }}
               >
                 {isLoading ? (
                   <ActivityIndicator size="small" color="white" />
@@ -412,28 +471,17 @@ const OracleScreen: React.FC<OracleScreenProps> = ({ visible, onClose, contextFo
               </Pressable>
             </View>
           ) : (
-            <PremiumGate 
-              feature="oracle" 
-              showUpgradePrompt={true}
-              customMessage="You've reached your daily limit of 5 Oracle questions. Upgrade to Premium for unlimited access!"
-            >
-              <View className="flex-row items-end opacity-50">
-                <View className="flex-1 bg-gray-100 rounded-2xl px-4 py-3 mr-3 border border-gray-200">
-                  <TextInput
-                    className="text-base text-gray-500 max-h-24"
-                    placeholder="Upgrade to Premium to ask more questions..."
-                    placeholderTextColor="#9ca3af"
-                    value=""
-                    editable={false}
-                    multiline
-                  />
-                </View>
-                
-                <View className="w-12 h-12 rounded-full items-center justify-center bg-gray-300">
-                  <Ionicons name="lock-closed" size={20} color="#9ca3af" />
-                </View>
+            <View className="flex-row items-end opacity-50">
+              <View className="flex-1 bg-gray-100 rounded-2xl px-4 py-3 mr-3 border border-gray-200">
+                <Text className="text-base text-gray-500">
+                  You've reached your daily limit. Upgrade to Premium for unlimited access!
+                </Text>
               </View>
-            </PremiumGate>
+              
+              <View className="w-12 h-12 rounded-full items-center justify-center bg-gray-300">
+                <Ionicons name="lock-closed" size={20} color="#9ca3af" />
+              </View>
+            </View>
           )}
         </View>
       </KeyboardAvoidingView>

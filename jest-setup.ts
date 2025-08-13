@@ -1,7 +1,13 @@
 import '@testing-library/react-native/extend-expect';
+import '@testing-library/jest-native/extend-expect';
 
 // Mock react-native-reanimated
-require('react-native-reanimated/lib/reanimated2/jestUtils').setUpTests();
+try {
+  require('react-native-reanimated/lib/reanimated2/jestUtils').setUpTests();
+} catch (error) {
+  // Reanimated not available, continue without it
+  console.warn('React Native Reanimated test setup not available');
+}
 
 // Mock NativeWind
 jest.mock('nativewind', () => ({

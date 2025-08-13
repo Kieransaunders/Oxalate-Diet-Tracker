@@ -10,7 +10,7 @@
 - ✅ **Custom Branding**: Added app icon and proper configuration
 - ✅ **Code Quality**: Enhanced error handling, TypeScript improvements, clean architecture
 
-**Current Status**: The app is now fully functional and ready for users with a professional, crash-free experience.
+**Current Status**: The app is mostly functional but has a critical Oracle chat issue that prevents AI conversations.
 
 ## 🎨 UI Improvements
 
@@ -67,7 +67,7 @@
 - [ ] **Personalized Warnings**
   - [ ] Set daily oxalate limit (20mg, 40mg, 100mg, custom)
   - [ ] Color-coded progress bar for daily intake
-  - [ ] Alerts when approaching/exceeding limits
+  - [ ] Alerts whenß approaching/exceeding limits
   - [ ] Smart portion suggestions to stay within limits
 
 - [ ] **User Customization**
@@ -170,7 +170,29 @@
   - [x] Food-specific chat access from food items
   - [x] Dynamic header showing current context
 
-### Phase 2 - Enhanced AI Features (Future)
+### Phase 2 - Testing & Validation (IN PROGRESS ⚠️)
+- [x] **Chat Bot Testing & Validation** ✅ COMPLETED
+  - [x] Fixed Oracle system prompt integration - was not being passed to AI API
+  - [x] Created SystemPromptTester component for testing different settings
+  - [x] Verified diet type settings dramatically affect Oracle personality and answers
+  - [x] Confirmed Oracle system prompts are working correctly with user preferences
+  - [x] Validated medical condition settings influence responses appropriately
+  - [x] Verified Oracle personality (cautious/balanced/permissive) affects tone and advice style
+  - [x] Added developer tools in Settings for testing system prompt generation
+
+- [x] **Oracle Navigation Context Error** ✅ RESOLVED
+  - **Root Cause**: The `Pressable` component from NativeWind was causing a navigation context error when used inside a `Modal`.
+  - **Immediate Fix**: Replaced the NativeWind `Pressable` for the "send" button in `OracleScreen.tsx` with a standard `Pressable` from React Native. This has resolved the immediate crashing issue.
+
+- [ ] **Short-term Task: Stabilize OracleScreen**
+  - [ ] Replace all remaining NativeWind `Pressable` components within `OracleScreen.tsx` with standard `Pressable` components to prevent the same crash from happening with other buttons on the screen.
+
+- [ ] **Long-term Task: Research NativeWind `Pressable` Issue**
+  - [ ] Investigate why the NativeWind `Pressable` component causes a navigation context error inside a `Modal`. This could be a bug in NativeWind or an incompatibility with another library.
+  - [ ] Research for a long-term solution that allows the use of NativeWind components throughout the app without causing crashes. This will allow for more consistent and maintainable styling.
+  - [ ] Based on the research, create a plan to either fix the issue, find a workaround, or choose an alternative styling solution.
+
+### Phase 3 - Enhanced AI Features (Future)
 - [ ] **Advanced Context**
   - [ ] Share user's daily oxalate progress with AI
   - [ ] Include user's dietary restrictions and goals
@@ -211,11 +233,11 @@
 
 ## Implementation Priority
 
-**🔴 Critical (Week 1-2) - ✅ COMPLETED**
+**🔴 Critical (Week 1-2) - ⚠️ MOSTLY COMPLETED**
 - ✅ Better visual hierarchy
 - ✅ Portion size adjustment
 - ✅ Basic meal tracking
-- ✅ AI Chat Assistant
+- ⚠️ AI Chat Assistant - **CRITICAL BUG**: Navigation context error prevents Oracle chat functionality
 
 **🟡 Important (Week 3-4) - ✅ COMPLETED**
 - ✅ Category grouping
@@ -223,8 +245,28 @@
 - ✅ Personal limits & warnings
 - ✅ Contextual AI assistance
 
+**🔴 URGENT - Oracle Chat Fix Required**
+- [ ] **Resolve Navigation Context Error** - Oracle chat is completely non-functional
+- [ ] **Root Cause Analysis** - Error persists even with minimal implementation
+- [ ] **Systematic Debugging** - Need to identify if issue is in navigation setup or dependencies
+- [ ] **Restore Oracle Functionality** - Critical for app's core AI features
+
 **🟢 Nice to Have (Month 2+)**
 - Offline mode
 - Scientific sources
 - Community features
 - Advanced AI personalization
+
+## 🧪 Failing Unit Tests
+
+The following unit tests are currently failing. All of them are failing with the same error: `TypeError: Cannot redefine property: window`. This suggests a problem with the test setup environment, possibly in `node_modules/react-native/jest/setup.js`.
+
+- [ ] `src/components/__tests__/BottomNavigation.test.tsx`
+- [ ] `src/api/__tests__/oxalate-api.test.ts`
+- [ ] `src/components/__tests__/PremiumGate.test.tsx`
+- [ ] `src/__tests__/premium-integration.test.ts`
+- [ ] `src/state/__tests__/oxalateStore.test.ts`
+- [ ] `src/utils/__tests__/cn.test.ts`
+- [ ] `src/screens/__tests__/OxalateTableScreen.test.tsx`
+- [ ] `src/state/__tests__/subscriptionStore.test.ts`
+- [ ] `src/state/__tests__/mealStore.test.ts`

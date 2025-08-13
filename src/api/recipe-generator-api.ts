@@ -1,5 +1,5 @@
-// Recipe Generator API Service
-const RECIPE_API_URL = "https://flowise.iconnectit.co.uk/api/v1/prediction/38829e38-c961-4d31-b9d6-6506be363952";
+// Recipe Generator API Service - using fast endpoint
+const RECIPE_API_URL = "https://flowise.iconnectit.co.uk/api/v1/prediction/df2d3204-ca40-445e-9eda-e626ab246a31";
 
 export interface RecipeGenerationRequest {
   question: string;
@@ -32,99 +32,27 @@ export const generateRecipe = async (request: RecipeGenerationRequest, existingR
     return getFallbackRecipe(request);
   }
   
-  const maxRetries = 1; // Reduced retries for faster fallback
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
-  
   try {
-    // Construct a detailed prompt for recipe generation
-    let prompt = request.question;
+    console.log('Generating recipe with request:', request); // Debug log
+    console.log('Sending to API:', { question: request.question }); // Debug what we're actually sending
     
-    // Add context and constraints
-    const constraints = [];
-    
-    if (request.dietaryRestrictions?.includes('low-oxalate')) {
-      constraints.push('must be low-oxalate (under 10mg oxalate per serving)');
-    } else if (request.dietaryRestrictions?.includes('medium-oxalate')) {
-      constraints.push('must be medium-oxalate (10-40mg oxalate per serving)');
-    } else if (request.dietaryRestrictions?.includes('high-oxalate')) {
-      constraints.push('must be high-oxalate (40mg+ oxalate per serving)');
-    }
-    
-    if (request.mealType) {
-      constraints.push(`suitable for ${request.mealType}`);
-    }
-    
-    if (request.servings) {
-      constraints.push(`serves ${request.servings} people`);
-    }
-    
-    if (request.cookingTime) {
-      constraints.push(`can be prepared in ${request.cookingTime} minutes or less`);
-    }
-    
-    if (request.difficulty) {
-      constraints.push(`${request.difficulty} to make`);
-    }
-    
-    if (request.ingredients && request.ingredients.length > 0) {
-      constraints.push(`must include: ${request.ingredients.join(', ')}`);
-    }
-    
-    if (request.excludeIngredients && request.excludeIngredients.length > 0) {
-      constraints.push(`must NOT include: ${request.excludeIngredients.join(', ')}`);
-    }
-    
-    // Enhance the prompt with constraints
-    if (constraints.length > 0) {
-      prompt += `. The recipe ${constraints.join(', ')}.`;
-    }
-    
-    // Add existing recipe exclusion
-    if (existingRecipes.length > 0) {
-      prompt += ` Please create something different from these existing recipes: ${existingRecipes.slice(0, 5).join(', ')}.`;
-    }
-    
-    // Add specific formatting request
-    prompt += ` Please provide a complete recipe with:
-1. Recipe title
-2. Serving size
-3. Preparation time
-4. Cooking time
-5. Difficulty level
-6. Complete ingredients list with measurements
-7. Step-by-step instructions
-8. Estimated oxalate content per serving
-9. Any helpful cooking tips`;
+    const startTime = Date.now();
+    console.log('Starting recipe API call at:', new Date().toISOString());
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 8000); // Reduced to 8 second timeout for faster fallback
-
+    // Use the same simple approach as Oracle - no timeout, no abort controller
     const response = await fetch(RECIPE_API_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({ question: prompt }),
-      signal: controller.signal,
+      body: JSON.stringify({ question: request.question })
     });
 
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      // Handle specific error cases
-      if (response.status === 503 || response.status === 502) {
-        throw new Error('The recipe service is temporarily unavailable. Please try again in a few minutes.');
-      } else if (response.status === 429) {
-        throw new Error('Too many requests. Please wait a moment before trying again.');
-      } else if (response.status >= 500) {
-        throw new Error('Server error. Please try again later.');
-      } else {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-    }
+    const endTime = Date.now();
+    console.log(`Recipe API responded in ${endTime - startTime}ms`);
 
     const result = await response.json();
+    console.log('Recipe API response:', result); // Debug log
     
     // Handle different response formats
     if (typeof result === 'string') {
@@ -151,43 +79,9 @@ export const generateRecipe = async (request: RecipeGenerationRequest, existingR
     return { text: JSON.stringify(result) };
     
   } catch (error) {
-    clearTimeout(timeoutId); // Clear timeout on any error
     console.error('Recipe Generation API Error:', error);
     
-    // Handle AbortError specifically
-    if (error instanceof Error && (error.name === 'AbortError' || error.message.includes('aborted'))) {
-      console.log('Request timed out, using fallback recipe');
-      return getFallbackRecipe(request, existingRecipes);
-    }
-    
-    // Retry logic for other errors
-    if (retryCount < maxRetries && error instanceof Error) {
-      if (error.message.includes('temporarily unavailable') || 
-          error.message.includes('network') ||
-          error.message.includes('fetch')) {
-        console.log(`Retrying... Attempt ${retryCount + 1} of ${maxRetries}`);
-        await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1))); // Reduced backoff time
-        return generateRecipe(request, existingRecipes, retryCount + 1);
-      }
-    }
-    
-    // If all retries failed or non-retryable error, return fallback
-    if (retryCount >= maxRetries) {
-      console.log('Max retries reached, using fallback recipe');
-      return getFallbackRecipe(request, existingRecipes);
-    }
-    
-    // For other errors, try fallback
-    if (error instanceof Error && 
-        (error.message.includes('temporarily unavailable') ||
-         error.message.includes('503') ||
-         error.message.includes('502'))) {
-      return getFallbackRecipe(request, existingRecipes);
-    }
-    
-    return { 
-      error: error instanceof Error ? error.message : 'Failed to generate recipe'
-    };
+    return getFallbackRecipe(request, existingRecipes);
   }
 };
 

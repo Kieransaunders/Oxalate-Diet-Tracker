@@ -1,14 +1,10 @@
-import React, { ReactElement } from 'react';
+import React, { ReactElement, ReactNode } from 'react';
 import { render, RenderOptions } from '@testing-library/react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 // Custom render function that includes providers
 const AllTheProviders = ({ children }: { children: React.ReactNode }) => {
-  return (
-    <SafeAreaProvider>
-      {children}
-    </SafeAreaProvider>
-  );
+  return React.createElement(SafeAreaProvider, null, children);
 };
 
 const customRender = (
@@ -22,7 +18,7 @@ export const createMockFood = (overrides = {}) => ({
   name: 'Test Food',
   oxalate_mg: 10,
   serving_size: '1 cup',
-  category: 'Vegetables',
+  category: 'Low' as const,
   group: 'vegetables',
   calcium_mg: 50,
   calories: 25,
@@ -40,7 +36,7 @@ export const createMockMealItem = (overrides = {}) => ({
   ...overrides,
 });
 
-export const createMockCustomerInfo = (overrides = {}) => ({
+export const createMockCustomerInfo = (overrides: any = {}) => ({
   entitlements: {
     active: {
       premium: {

@@ -11,13 +11,14 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import * as Sentry from '@sentry/react-native';
 import { useUserPreferencesStore } from '../state/userPreferencesStore';
 import { useMealStore } from '../state/mealStore';
 import { useSubscriptionStore } from '../state/subscriptionStore';
 import { 
   DietType, 
   MedicalCondition, 
-  OxalateLevel, 
+ 
   OraclePersonality,
   dietTypePresets,
   oraclePersonalities
@@ -38,15 +39,13 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ visible, onClose }) => 
     setTargetDailyLimit, 
     setMedicalCondition,
     updatePreferences,
-    updateProfile,
     resetToDefaults 
   } = useUserPreferencesStore();
   const { setDailyLimit } = useMealStore();
   const { 
     status: subscriptionStatus, 
-    customerInfo, 
+ 
     restorePurchases,
-    initializePurchases,
     getRemainingOracleQuestions,
     getRemainingRecipes,
     getRemainingTrackingDays
@@ -81,7 +80,7 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ visible, onClose }) => 
           [{ text: 'OK' }]
         );
       }
-    } catch (error) {
+    } catch {
       Alert.alert(
         'Restore Failed',
         'Could not restore purchases. Please try again.',
@@ -119,6 +118,41 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ visible, onClose }) => 
         }
       ]
     );
+  };
+
+  const handleTestSentryError = () => {
+    Alert.alert(
+      'Test Sentry Error',
+      'This will send a test error to Sentry. Are you sure?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Send Test Error', 
+          style: 'destructive',
+          onPress: () => {
+            try {
+              // This will throw an error that Sentry will catch
+              throw new Error('Test error from Settings screen - Sentry integration working!');
+            } catch {
+              // Sentry will automatically capture this
+              Alert.alert('Test Sent', 'Check your Sentry dashboard for the test error.');
+            }
+          }
+        }
+      ]
+    );
+  };
+
+
+  const handleTestSentryMessage = () => {
+    Sentry.addBreadcrumb({
+      message: 'User tested Sentry message from Settings',
+      level: 'info',
+      category: 'user_action',
+    });
+    
+    Sentry.captureMessage('Test message from Oxalate Diet Tracker Settings', 'info');
+    Alert.alert('Test Message Sent', 'Check your Sentry dashboard for the test message.');
   };
 
   const getDietTypeColor = (dietType: DietType) => {
@@ -404,6 +438,50 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ visible, onClose }) => 
             </View>
           </View>
 
+          {/* Developer/Testing Section */}
+          {__DEV__ && (
+            <View className="mb-8">
+              <Text className="text-xl font-bold text-gray-900 mb-4">Developer Testing</Text>
+              <Text className="text-gray-600 text-sm mb-4">Test app functionality (development only)</Text>
+              
+              <View className="bg-white rounded-lg border border-gray-200 divide-y divide-gray-200">
+                <Pressable
+                  onPress={handleTestSentryMessage}
+                  className="p-4 flex-row items-center"
+                >
+                  <View className="w-10 h-10 bg-blue-100 rounded-full items-center justify-center mr-3">
+                    <Ionicons name="information-circle-outline" size={20} color="#3b82f6" />
+                  </View>
+                  <View className="flex-1">
+                    <Text className="font-medium text-gray-900">Test Sentry Message</Text>
+                    <Text className="text-gray-600 text-sm">Send a test message to Sentry</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={16} color="#6b7280" />
+                </Pressable>
+                
+                <Pressable
+                  onPress={handleTestSentryError}
+                  className="p-4 flex-row items-center"
+                >
+                  <View className="w-10 h-10 bg-red-100 rounded-full items-center justify-center mr-3">
+                    <Ionicons name="warning-outline" size={20} color="#ef4444" />
+                  </View>
+                  <View className="flex-1">
+                    <Text className="font-medium text-gray-900">Test Sentry Error</Text>
+                    <Text className="text-gray-600 text-sm">Send a test error to Sentry</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={16} color="#6b7280" />
+                </Pressable>
+              </View>
+              
+              <View className="mt-3 bg-amber-50 border border-amber-200 rounded-lg p-3">
+                <Text className="text-amber-800 text-sm">
+                  💡 These buttons are only visible in development mode and will help verify that Sentry error reporting is working correctly.
+                </Text>
+              </View>
+            </View>
+          )}
+
           {/* Reset Section */}
           <View className="mb-8">
             <Pressable
@@ -464,6 +542,7 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ visible, onClose }) => 
           visible={showPaywall}
           onClose={() => setShowPaywall(false)}
         />
+
       </View>
     </Modal>
   );

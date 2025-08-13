@@ -51,13 +51,30 @@ const RecipeGeneratorScreen: React.FC<RecipeGeneratorScreenProps> = ({ visible, 
       // Parse the generated recipe text to extract ingredients
       const parsed = parseRecipeResponse(generatedRecipe);
       
+      // First, save the recipe to the recipe store
+      const savedRecipe = addRecipe({
+        title: parsed.title,
+        description: parsed.description || 'Generated recipe',
+        ingredients: parsed.ingredients,
+        instructions: parsed.instructions,
+        servings: parsed.servings,
+        prepTime: parsed.prepTime,
+        cookTime: parsed.cookTime,
+        difficulty: parsed.difficulty || selectedDifficulty || 'medium',
+        category: selectedMealType || 'dinner',
+        oxalateLevel: selectedOxalateLevel || 'low',
+        tags: [],
+        notes: `Generated on ${new Date().toLocaleDateString()}`
+      });
+      
+      // Then add ingredients to meal tracker
       const result = addRecipeIngredients({
         title: parsed.title,
         ingredients: parsed.ingredients,
         servings: parsed.servings
       }, foods);
 
-      let message = `Added ${result.added} ingredients to your daily tracker!`;
+      let message = `Recipe "${parsed.title}" saved and ${result.added} ingredients added to your daily tracker!`;
       if (result.totalOxalate > 0) {
         message += `\n\nTotal oxalate: ${result.totalOxalate.toFixed(1)}mg`;
       }
@@ -66,7 +83,7 @@ const RecipeGeneratorScreen: React.FC<RecipeGeneratorScreenProps> = ({ visible, 
       }
 
       Alert.alert(
-        'Ingredients Added to Tracker',
+        'Recipe Saved & Ingredients Added',
         message,
         [
           { text: 'OK', style: 'cancel' },
@@ -84,7 +101,7 @@ const RecipeGeneratorScreen: React.FC<RecipeGeneratorScreenProps> = ({ visible, 
     } catch (error) {
       Alert.alert(
         'Error',
-        'Failed to add ingredients to tracker. Please try again.',
+        'Failed to save recipe and add ingredients to tracker. Please try again.',
         [{ text: 'OK' }]
       );
     }
@@ -181,6 +198,43 @@ const RecipeGeneratorScreen: React.FC<RecipeGeneratorScreenProps> = ({ visible, 
   };
 
   const handleSaveRecipe = () => {
+    if (!generatedRecipe) return;
+    
+    try {
+      // Parse the generated recipe text to extract ingredients
+      const parsed = parseRecipeResponse(generatedRecipe);
+      
+      // Save the recipe to the recipe store (without adding to tracker)
+      const savedRecipe = addRecipe({
+        title: parsed.title,
+        description: parsed.description || 'Generated recipe',
+        ingredients: parsed.ingredients,
+        instructions: parsed.instructions,
+        servings: parsed.servings,
+        prepTime: parsed.prepTime,
+        cookTime: parsed.cookTime,
+        difficulty: parsed.difficulty || selectedDifficulty || 'medium',
+        category: selectedMealType || 'dinner',
+        oxalateLevel: selectedOxalateLevel || 'low',
+        tags: [],
+        notes: `Generated on ${new Date().toLocaleDateString()}`
+      });
+
+      Alert.alert(
+        'Recipe Saved!',
+        `"${parsed.title}" has been saved to your recipe collection.`,
+        [{ text: 'OK' }]
+      );
+    } catch (error) {
+      Alert.alert(
+        'Error',
+        'Failed to save recipe. Please try again.',
+        [{ text: 'OK' }]
+      );
+    }
+  };
+
+  const handleSaveRecipeOld = () => {
     if (!generatedRecipe) return;
     
     try {
@@ -465,28 +519,17 @@ const RecipeGeneratorScreen: React.FC<RecipeGeneratorScreenProps> = ({ visible, 
                 <Text className="text-lg font-bold text-gray-900">Generated Recipe</Text>
                 <View className="flex-row space-x-2">
                   <Pressable
-                    onPress={() => {
-                      setGeneratedRecipe(null);
-                      setShowCustomForm(true);
-                      setLastError(null);
-                    }}
-                    className="bg-gray-100 px-3 py-2 rounded-lg"
+                    onPress={handleSaveRecipe}
+                    className="bg-green-500 px-4 py-2 rounded-lg"
                   >
-                    <Text className="text-gray-700 font-medium">New Recipe</Text>
+                    <Text className="text-white font-medium text-sm">Save</Text>
                   </Pressable>
                   
                   <Pressable
                     onPress={handleAddToTracker}
-                    className="bg-blue-500 px-3 py-2 rounded-lg mr-2"
+                    className="bg-blue-500 px-4 py-2 rounded-lg"
                   >
-                    <Text className="text-white font-medium text-sm">Add to Tracker</Text>
-                  </Pressable>
-                  
-                  <Pressable
-                    onPress={handleSaveRecipe}
-                    className="bg-green-500 px-4 py-2 rounded-lg"
-                  >
-                    <Text className="text-white font-medium">Save Recipe</Text>
+                    <Text className="text-white font-medium text-sm">Save & Add to Tracker</Text>
                   </Pressable>
                 </View>
               </View>

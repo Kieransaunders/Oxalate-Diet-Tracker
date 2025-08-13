@@ -12,7 +12,6 @@ import { useMealStore } from '../state/mealStore';
 import { useUserPreferencesStore } from '../state/userPreferencesStore';
 import { useSubscriptionStore } from '../state/subscriptionStore';
 import { getCategoryColor, getOxalateCategory } from '../api/oxalate-api';
-import { cn } from '../utils/cn';
 import TrackingProgress from './TrackingProgress';
 import PremiumGate from './PremiumGate';
 
@@ -25,7 +24,6 @@ interface MealTrackerProps {
 const MealTracker: React.FC<MealTrackerProps> = ({ visible, onClose, onOpenSettings }) => {
   const {
     currentDay,
-    dailyLimit,
     removeMealItem,
     setDailyLimit,
     clearDay,
@@ -35,8 +33,6 @@ const MealTracker: React.FC<MealTrackerProps> = ({ visible, onClose, onOpenSetti
   const { 
     status: subscriptionStatus, 
     canTrack, 
-    startTracking,
-    incrementTrackingDay, 
     getRemainingTrackingDays 
   } = useSubscriptionStore();
 
@@ -50,9 +46,6 @@ const MealTracker: React.FC<MealTrackerProps> = ({ visible, onClose, onOpenSetti
 
   // Use the limit from user preferences
   const effectiveDailyLimit = userPreferences.targetDailyLimit;
-  const progressPercentage = (currentDay.totalOxalate / effectiveDailyLimit) * 100;
-  const isOverLimit = currentDay.totalOxalate > effectiveDailyLimit;
-  const currentCategory = getOxalateCategory(currentDay.totalOxalate);
 
   const handleSaveLimit = () => {
     const newLimit = parseFloat(limitInput);
@@ -89,33 +82,6 @@ const MealTracker: React.FC<MealTrackerProps> = ({ visible, onClose, onOpenSetti
     }
   };
 
-  const getDietAwareProgressMessage = () => {
-    const { dietType } = userPreferences;
-    const percentage = progressPercentage;
-    
-    if (dietType === 'high-oxalate') {
-      if (percentage < 50) {
-        return 'Consider adding more nutrient-dense foods to your day';
-      } else if (percentage < 100) {
-        return 'Great balance of nutritious foods!';
-      } else {
-        return 'Excellent nutrient intake - remember to pair with calcium';
-      }
-    } else if (dietType === 'unrestricted') {
-      return `${currentDay.totalOxalate.toFixed(1)}mg tracked for awareness`;
-    } else {
-      // low-oxalate and moderate-oxalate
-      if (percentage <= 50) {
-        return 'Excellent! Well within your safe zone';
-      } else if (percentage <= 80) {
-        return 'Good progress, staying within limits';
-      } else if (percentage <= 100) {
-        return 'Approaching your daily limit';
-      } else {
-        return 'Consider reducing portion sizes or choosing lower oxalate alternatives.';
-      }
-    }
-  };
 
   return (
     <Modal
@@ -241,9 +207,9 @@ const MealTracker: React.FC<MealTrackerProps> = ({ visible, onClose, onOpenSetti
               </View>
             ) : (
               <View className="space-y-3">
-                {currentDay.items.map((item) => (
+                {currentDay.items.map((item, index) => (
                   <View
-                    key={item.id}
+                    key={`${item.id}-${index}`}
                     className="bg-white border border-gray-200 rounded-lg p-4"
                   >
                     <View className="flex-row items-start justify-between">

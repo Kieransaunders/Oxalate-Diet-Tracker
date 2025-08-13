@@ -18,6 +18,9 @@
       "bundleIdentifier": "uk.co.iconnectit.oxolatediettracker",
       "appleTeamId": "QHS5TSHJA5",
       "requireFullScreen": true,
+      "config": {
+        "usesNonExemptEncryption": false
+      },
       "infoPlist": {
         "UISupportedInterfaceOrientations": [
           "UIInterfaceOrientationPortrait"
@@ -27,7 +30,8 @@
           "UIInterfaceOrientationPortraitUpsideDown"
         ],
         "NSCalendarsUsageDescription": "This app does not use calendar functionality",
-        "NSRemindersUsageDescription": "This app does not use reminders functionality"
+        "NSRemindersUsageDescription": "This app does not use reminders functionality",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -44,7 +48,8 @@
       "expo-build-properties",
       "expo-font",
       "expo-sqlite",
-      "expo-web-browser"
+      "expo-web-browser",
+      "@sentry/react-native/expo"
     ]
   }
 }

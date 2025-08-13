@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.json",
+  "exclude": [
+    "**/__tests__/**/*",
+    "**/*.test.*",
+    "**/*.spec.*",
+    "jest-setup.ts",
+    "jest-polyfills.js",
+    "jest-environment-jsdom-fix.js",
+    "scripts/**/*"
+  ]
+}

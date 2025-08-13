@@ -16,10 +16,10 @@ const mockUseMealStore = useMealStore as jest.MockedFunction<typeof useMealStore
 jest.mock('../../components/BottomNavigation', () => {
   return function MockBottomNavigation({ onChatPress, onTrackerPress, onRecipesPress }: any) {
     return (
-      <div data-testid=\"bottom-navigation\">
-        <button onPress={onChatPress}>Chat</button>
-        <button onPress={onTrackerPress}>Tracker</button>
-        <button onPress={onRecipesPress}>Recipes</button>
+      <div data-testid="bottom-navigation\">
+        <button onClick={onChatPress}>Chat</button>
+        <button onClick={onTrackerPress}>Tracker</button>
+        <button onClick={onRecipesPress}>Recipes</button>
       </div>
     );
   };
@@ -28,9 +28,9 @@ jest.mock('../../components/BottomNavigation', () => {
 jest.mock('../../components/NutritionModal', () => {
   return function MockNutritionModal({ visible, food, onClose }: any) {
     return visible ? (
-      <div data-testid=\"nutrition-modal\">
+      <div data-testid="nutrition-modal\">
         <div>{food?.name}</div>
-        <button onPress={onClose}>Close</button>
+        <button onClick={onClose}>Close</button>
       </div>
     ) : null;
   };
@@ -39,8 +39,8 @@ jest.mock('../../components/NutritionModal', () => {
 jest.mock('../../components/MealTracker', () => {
   return function MockMealTracker({ visible, onClose }: any) {
     return visible ? (
-      <div data-testid=\"meal-tracker\">
-        <button onPress={onClose}>Close Tracker</button>
+      <div data-testid="meal-tracker\">
+        <button onClick={onClose}>Close Tracker</button>
       </div>
     ) : null;
   };
