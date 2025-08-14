@@ -66,7 +66,7 @@ describe('PremiumGate', () => {
 
     it('should show content when recipes available', () => {
       render(
-        <PremiumGate feature=\"recipes\">
+        <PremiumGate feature="recipes">
           <TestChild />
         </PremiumGate>
       );
@@ -76,7 +76,7 @@ describe('PremiumGate', () => {
 
     it('should show content when tracking available', () => {
       render(
-        <PremiumGate feature=\"tracking\">
+        <PremiumGate feature="tracking">
           <TestChild />
         </PremiumGate>
       );
@@ -111,7 +111,7 @@ describe('PremiumGate', () => {
       } as any);
 
       render(
-        <PremiumGate feature=\"recipes\">
+        <PremiumGate feature="recipes">
           <TestChild />
         </PremiumGate>
       );
@@ -128,7 +128,7 @@ describe('PremiumGate', () => {
       } as any);
 
       render(
-        <PremiumGate feature=\"tracking\">
+        <PremiumGate feature="tracking">
           <TestChild />
         </PremiumGate>
       );
@@ -243,7 +243,7 @@ describe('PremiumGate', () => {
       } as any);
 
       render(
-        <PremiumGate feature=\"recipes\">
+        <PremiumGate feature="recipes">
           <TestChild />
         </PremiumGate>
       );
@@ -258,7 +258,7 @@ describe('PremiumGate', () => {
       } as any);
 
       render(
-        <PremiumGate feature=\"tracking\">
+        <PremiumGate feature="tracking">
           <TestChild />
         </PremiumGate>
       );
@@ -290,7 +290,7 @@ describe('PremiumGate', () => {
 
     it('should work with use action (default)', () => {
       render(
-        <PremiumGate feature=\"tracking\">
+        <PremiumGate feature="tracking">
           <TestChild />
         </PremiumGate>
       );

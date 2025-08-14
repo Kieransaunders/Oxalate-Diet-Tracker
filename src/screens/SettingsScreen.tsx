@@ -6,18 +6,20 @@ import {
   Pressable,
   Modal,
   TextInput,
-  Alert,
   Switch,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import * as Sentry from '@sentry/react-native';
+import { StackNavigationProp } from '@react-navigation/stack';
+import { RouteProp } from '@react-navigation/native';
+
 import { useUserPreferencesStore } from '../state/userPreferencesStore';
 import { useMealStore } from '../state/mealStore';
 import { useSubscriptionStore } from '../state/subscriptionStore';
+import { toast } from '../utils/toast';
 import { 
   DietType, 
-  MedicalCondition, 
+  DietaryReason, 
  
   OraclePersonality,
   dietTypePresets,
@@ -25,19 +27,39 @@ import {
 } from '../types/userPreferences';
 import { cn } from '../utils/cn';
 import PaywallModal from '../components/PaywallModal';
+import { RootStackParamList } from '../navigation/types';
 
-interface SettingsScreenProps {
+// Props for modal usage (backward compatibility)
+interface SettingsModalProps {
   visible: boolean;
   onClose: () => void;
 }
 
-const SettingsScreen: React.FC<SettingsScreenProps> = ({ visible, onClose }) => {
+// Props for navigation usage
+interface SettingsNavigationProps {
+  navigation: StackNavigationProp<RootStackParamList, 'Settings'>;
+  route: RouteProp<RootStackParamList, 'Settings'>;
+}
+
+// Combined props type
+type SettingsScreenProps = SettingsModalProps | SettingsNavigationProps;
+
+// Type guard to check if props are for navigation
+function isNavigationProps(props: SettingsScreenProps): props is SettingsNavigationProps {
+  return 'navigation' in props && 'route' in props;
+}
+
+const SettingsScreen: React.FC<SettingsScreenProps> = (props) => {
+  // Handle both navigation and modal props
+  const isNavigation = isNavigationProps(props);
+  const visible = isNavigation ? true : props.visible;
+  const onClose = isNavigation ? () => props.navigation.goBack() : props.onClose;
   const insets = useSafeAreaInsets();
   const { 
     userPreferences, 
     setDietType, 
     setTargetDailyLimit, 
-    setMedicalCondition,
+    setDietaryReason,
     updatePreferences,
     resetToDefaults 
   } = useUserPreferencesStore();
@@ -66,26 +88,8 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ visible, onClose }) => 
   const handleRestorePurchases = async () => {
     setIsRestoring(true);
     try {
-      const success = await restorePurchases();
-      if (success) {
-        Alert.alert(
-          'Purchases Restored!',
-          'Your premium subscription has been restored.',
-          [{ text: 'OK' }]
-        );
-      } else {
-        Alert.alert(
-          'No Purchases Found',
-          'No previous purchases were found for this account.',
-          [{ text: 'OK' }]
-        );
-      }
-    } catch {
-      Alert.alert(
-        'Restore Failed',
-        'Could not restore purchases. Please try again.',
-        [{ text: 'OK' }]
-      );
+      // The subscription store now handles all messaging for restore operations
+      await restorePurchases();
     } finally {
       setIsRestoring(false);
     }
@@ -98,62 +102,29 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ visible, onClose }) => 
       setDailyLimit(limit);
       setShowCustomLimit(false);
     } else {
-      Alert.alert('Invalid Limit', 'Please enter a valid limit between 1-1000mg');
+      toast.warning('Invalid Limit', 'Please enter a valid limit between 1-1000mg');
     }
   };
 
   const handleResetSettings = () => {
-    Alert.alert(
+    toast.warning(
       'Reset Settings',
       'Are you sure you want to reset all settings to defaults? This cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Reset', 
-          style: 'destructive',
-          onPress: () => {
-            resetToDefaults();
-            setDailyLimit(50); // Reset meal tracker limit too
-          }
+      {
+        label: 'Reset',
+        onPress: () => {
+          resetToDefaults();
+          setDailyLimit(50); // Reset meal tracker limit too
+          toast.success('Settings Reset', 'All settings have been reset to their default values.');
         }
-      ]
+      }
     );
   };
 
-  const handleTestSentryError = () => {
-    Alert.alert(
-      'Test Sentry Error',
-      'This will send a test error to Sentry. Are you sure?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Send Test Error', 
-          style: 'destructive',
-          onPress: () => {
-            try {
-              // This will throw an error that Sentry will catch
-              throw new Error('Test error from Settings screen - Sentry integration working!');
-            } catch {
-              // Sentry will automatically capture this
-              Alert.alert('Test Sent', 'Check your Sentry dashboard for the test error.');
-            }
-          }
-        }
-      ]
-    );
-  };
+  
 
 
-  const handleTestSentryMessage = () => {
-    Sentry.addBreadcrumb({
-      message: 'User tested Sentry message from Settings',
-      level: 'info',
-      category: 'user_action',
-    });
-    
-    Sentry.captureMessage('Test message from Oxalate Diet Tracker Settings', 'info');
-    Alert.alert('Test Message Sent', 'Check your Sentry dashboard for the test message.');
-  };
+  
 
   const getDietTypeColor = (dietType: DietType) => {
     switch (dietType) {
@@ -164,9 +135,9 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ visible, onClose }) => 
     }
   };
 
-  return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
-      <View className="flex-1 bg-gray-50">
+  // For navigation usage, we don't need the Modal wrapper
+  const SettingsContent = (
+    <View className="flex-1 bg-gray-50">
         {/* Header */}
         <View 
           className="bg-blue-600 px-4 py-4 border-b border-blue-700"
@@ -331,33 +302,33 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ visible, onClose }) => 
             </View>
           </View>
 
-          {/* Medical Conditions */}
+          {/* Dietary Preferences */}
           <View className="mb-8">
-            <Text className="text-xl font-bold text-gray-900 mb-4">Medical Information</Text>
-            <Text className="text-gray-600 text-sm mb-3">Help us provide better guidance (optional)</Text>
+            <Text className="text-xl font-bold text-gray-900 mb-4">Dietary Preferences</Text>
+            <Text className="text-gray-600 text-sm mb-3">Why are you following a low-oxalate lifestyle? (optional)</Text>
             
             <View className="space-y-2">
-              {[null, 'kidney-stones', 'hyperoxaluria', 'other'].map((condition) => (
+              {[null, 'low-oxalate-lifestyle', 'general-wellness', 'other'].map((reason) => (
                 <Pressable
-                  key={condition || 'none'}
-                  onPress={() => setMedicalCondition(condition as MedicalCondition)}
+                  key={reason || 'none'}
+                  onPress={() => setDietaryReason(reason as DietaryReason)}
                   className={cn(
                     "p-3 rounded-lg border flex-row items-center justify-between",
-                    userPreferences.medicalCondition === condition 
+                    userPreferences.dietaryReason === reason 
                       ? "bg-blue-50 border-blue-300" 
                       : "bg-white border-gray-200"
                   )}
                 >
                   <Text className={cn(
                     "font-medium",
-                    userPreferences.medicalCondition === condition ? "text-blue-700" : "text-gray-900"
+                    userPreferences.dietaryReason === reason ? "text-blue-700" : "text-gray-900"
                   )}>
-                    {condition === null ? 'No medical conditions' :
-                     condition === 'kidney-stones' ? 'History of kidney stones' :
-                     condition === 'hyperoxaluria' ? 'Hyperoxaluria' :
-                     'Other condition'}
+                    {reason === null ? 'Personal preference' :
+                     reason === 'low-oxalate-lifestyle' ? 'Following low-oxalate lifestyle' :
+                     reason === 'general-wellness' ? 'General wellness goals' :
+                     'Other dietary reason'}
                   </Text>
-                  {userPreferences.medicalCondition === condition && (
+                  {userPreferences.dietaryReason === reason && (
                     <Ionicons name="checkmark-circle" size={20} color="#2563eb" />
                   )}
                 </Pressable>
@@ -412,7 +383,7 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ visible, onClose }) => 
             <View className="bg-white rounded-lg border border-gray-200 divide-y divide-gray-200">
               <View className="p-4 flex-row items-center justify-between">
                 <View className="flex-1">
-                  <Text className="font-medium text-gray-900">High Oxalate Warnings</Text>
+                  <Text className="font-medium text-gray-900">High Oxalate Indicators</Text>
                   <Text className="text-gray-600 text-sm">Show alerts for high-oxalate foods</Text>
                 </View>
                 <Switch
@@ -425,7 +396,7 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ visible, onClose }) => 
               
               <View className="p-4 flex-row items-center justify-between">
                 <View className="flex-1">
-                  <Text className="font-medium text-gray-900">Personalized Tips</Text>
+                  <Text className="font-medium text-gray-900">General Tips</Text>
                   <Text className="text-gray-600 text-sm">Get suggestions based on your diet type</Text>
                 </View>
                 <Switch
@@ -438,49 +409,7 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ visible, onClose }) => 
             </View>
           </View>
 
-          {/* Developer/Testing Section */}
-          {__DEV__ && (
-            <View className="mb-8">
-              <Text className="text-xl font-bold text-gray-900 mb-4">Developer Testing</Text>
-              <Text className="text-gray-600 text-sm mb-4">Test app functionality (development only)</Text>
-              
-              <View className="bg-white rounded-lg border border-gray-200 divide-y divide-gray-200">
-                <Pressable
-                  onPress={handleTestSentryMessage}
-                  className="p-4 flex-row items-center"
-                >
-                  <View className="w-10 h-10 bg-blue-100 rounded-full items-center justify-center mr-3">
-                    <Ionicons name="information-circle-outline" size={20} color="#3b82f6" />
-                  </View>
-                  <View className="flex-1">
-                    <Text className="font-medium text-gray-900">Test Sentry Message</Text>
-                    <Text className="text-gray-600 text-sm">Send a test message to Sentry</Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={16} color="#6b7280" />
-                </Pressable>
-                
-                <Pressable
-                  onPress={handleTestSentryError}
-                  className="p-4 flex-row items-center"
-                >
-                  <View className="w-10 h-10 bg-red-100 rounded-full items-center justify-center mr-3">
-                    <Ionicons name="warning-outline" size={20} color="#ef4444" />
-                  </View>
-                  <View className="flex-1">
-                    <Text className="font-medium text-gray-900">Test Sentry Error</Text>
-                    <Text className="text-gray-600 text-sm">Send a test error to Sentry</Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={16} color="#6b7280" />
-                </Pressable>
-              </View>
-              
-              <View className="mt-3 bg-amber-50 border border-amber-200 rounded-lg p-3">
-                <Text className="text-amber-800 text-sm">
-                  💡 These buttons are only visible in development mode and will help verify that Sentry error reporting is working correctly.
-                </Text>
-              </View>
-            </View>
-          )}
+          
 
           {/* Reset Section */}
           <View className="mb-8">
@@ -496,6 +425,12 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ visible, onClose }) => 
                 </View>
               </View>
             </Pressable>
+          </View>
+          {/* Disclaimer */}
+          <View className="mt-8 mb-4 p-4 bg-gray-100 rounded-lg border border-gray-200">
+            <Text className="text-gray-700 text-xs text-center">
+              This app provides nutrition information for general educational use only. It is not a substitute for professional advice. Always consult a qualified nutrition professional for dietary decisions.
+            </Text>
           </View>
         </ScrollView>
 
@@ -544,6 +479,16 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ visible, onClose }) => 
         />
 
       </View>
+  );
+
+  // Return content wrapped in Modal for backward compatibility, or just content for navigation
+  if (isNavigation) {
+    return SettingsContent;
+  }
+
+  return (
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
+      {SettingsContent}
     </Modal>
   );
 };

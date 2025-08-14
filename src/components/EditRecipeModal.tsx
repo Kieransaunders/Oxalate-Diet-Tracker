@@ -6,12 +6,12 @@ import {
   Pressable,
   ScrollView,
   TextInput,
-  Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRecipeStore } from '../state/recipeStore';
 import { getOxalateCategory } from '../api/oxalate-api';
+import { toast } from '../utils/toast';
 import { cn } from '../utils/cn';
 import type { Recipe } from '../types/recipe';
 
@@ -38,7 +38,7 @@ const EditRecipeModal: React.FC<EditRecipeModalProps> = ({ recipe, visible, onCl
 
   const handleSave = () => {
     if (!title.trim()) {
-      Alert.alert('Error', 'Recipe title is required');
+      toast.warning('Recipe Title Required', 'Please enter a title for your recipe.');
       return;
     }
 

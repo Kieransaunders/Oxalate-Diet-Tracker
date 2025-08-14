@@ -102,7 +102,6 @@ describe('Premium Feature Integration Tests', () => {
       mockPurchases.purchaseProduct.mockResolvedValue({
         customerInfo: premiumCustomerInfo,
         productIdentifier: 'oxalate_premium_monthly',
-        transactionIdentifier: 'test-transaction',
       });
 
       // Purchase premium

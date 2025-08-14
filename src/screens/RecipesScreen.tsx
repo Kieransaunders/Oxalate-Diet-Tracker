@@ -5,7 +5,6 @@ import {
   ScrollView,
   Pressable,
   TextInput,
-  Alert,
   Modal,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -15,23 +14,28 @@ import { useMealStore } from '../state/mealStore';
 import { useOxalateStore } from '../state/oxalateStore';
 import { useSubscriptionStore } from '../state/subscriptionStore';
 import { getCategoryColor, getCategoryBackgroundColor } from '../api/oxalate-api';
+import { toast } from '../utils/toast';
 import { cn } from '../utils/cn';
 import RecipeGeneratorScreen from './RecipeGeneratorScreen';
 import EditRecipeModal from '../components/EditRecipeModal';
+import ManualRecipeBuilder from '../components/ManualRecipeBuilder';
 import PremiumGate from '../components/PremiumGate';
 import type { Recipe } from '../types/recipe';
 
 interface RecipesScreenProps {
   onClose?: () => void;
   onNavigateToTracker?: () => void;
+  isTabScreen?: boolean;
 }
 
-const RecipesScreen: React.FC<RecipesScreenProps> = ({ onClose, onNavigateToTracker }) => {
+const RecipesScreen: React.FC<RecipesScreenProps> = ({ onClose, onNavigateToTracker, isTabScreen = false }) => {
   const insets = useSafeAreaInsets();
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [showRecipeModal, setShowRecipeModal] = useState(false);
   const [showRecipeGenerator, setShowRecipeGenerator] = useState(false);
+  const [showManualBuilder, setShowManualBuilder] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showCreateOptions, setShowCreateOptions] = useState(false);
   
   const {
     searchQuery,
@@ -55,6 +59,7 @@ const RecipesScreen: React.FC<RecipesScreenProps> = ({ onClose, onNavigateToTrac
     getRemainingRecipes 
   } = useSubscriptionStore();
 
+
   const filteredRecipes = getFilteredRecipes();
 
   const handleRecipePress = (recipe: Recipe) => {
@@ -71,50 +76,50 @@ const RecipesScreen: React.FC<RecipesScreenProps> = ({ onClose, onNavigateToTrac
       }, foods);
 
       let message = `Added ${result.added} ingredients from "${recipe.title}" to your daily tracker!`;
-      if (result.totalOxalate > 0) {
-        message += `\n\nTotal oxalate: ${result.totalOxalate.toFixed(1)}mg`;
+      
+      // Clarify that it's per-person portions
+      if (recipe.servings > 1) {
+        message += `\n\n📊 Per-person portions added (recipe serves ${recipe.servings})`;
+      }
+      
+      if (result.totalOxalate && result.totalOxalate > 0) {
+        message += `\nTotal oxalate: ${result.totalOxalate.toFixed(1)}mg per serving`;
       }
       if (result.notFound.length > 0) {
         message += `\n\nNote: ${result.notFound.length} ingredients couldn't be found in the food database: ${result.notFound.join(', ')}`;
       }
 
-      Alert.alert(
+      toast.success(
         'Ingredients Added to Tracker',
         message,
-        [
-          { text: 'OK', style: 'cancel' },
-          { 
-            text: 'View Tracker', 
-            style: 'default',
-            onPress: () => {
-              if (onNavigateToTracker) {
-                onNavigateToTracker();
-              }
+        {
+          label: 'View Tracker',
+          onPress: () => {
+            if (onNavigateToTracker) {
+              onNavigateToTracker();
             }
           }
-        ]
+        }
       );
     } catch (error) {
-      Alert.alert(
-        'Error',
-        'Failed to add ingredients to tracker. Please try again.',
-        [{ text: 'OK' }]
+      toast.error(
+        'Add Failed',
+        'Failed to add ingredients to tracker. Please try again.'
       );
     }
   };
 
   const handleDeleteRecipe = (recipe: Recipe) => {
-    Alert.alert(
+    toast.warning(
       'Delete Recipe',
-      `Are you sure you want to delete "${recipe.title}"?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => deleteRecipe(recipe.id),
+      `Are you sure you want to delete "${recipe.title}"? This action cannot be undone.`,
+      {
+        label: 'Delete',
+        onPress: () => {
+          deleteRecipe(recipe.id);
+          toast.success('Recipe Deleted', `"${recipe.title}" has been removed from your collection.`);
         },
-      ]
+      }
     );
   };
 
@@ -191,7 +196,7 @@ const RecipesScreen: React.FC<RecipesScreenProps> = ({ onClose, onNavigateToTrac
               className="font-semibold text-sm"
               style={{ color: categoryColor }}
             >
-              {recipe.oxalatePerServing.toFixed(1)} mg oxalate per serving
+              {(recipe.oxalatePerServing || 0).toFixed(1)} mg oxalate per serving
             </Text>
             <Text className="text-gray-500 text-sm ml-2">
               • {recipe.category}
@@ -269,12 +274,20 @@ const RecipesScreen: React.FC<RecipesScreenProps> = ({ onClose, onNavigateToTrac
             </Text>
           </View>
           
-          {onClose && (
+          {onClose && !isTabScreen && (
             <Pressable
               onPress={onClose}
               className="w-8 h-8 items-center justify-center rounded-full bg-gray-100"
             >
               <Ionicons name="close" size={20} color="#6b7280" />
+            </Pressable>
+          )}
+          {onClose && isTabScreen && (
+            <Pressable
+              onPress={onClose}
+              className="w-8 h-8 items-center justify-center rounded-full bg-blue-100"
+            >
+              <Ionicons name="home" size={20} color="#3b82f6" />
             </Pressable>
           )}
         </View>
@@ -333,7 +346,7 @@ const RecipesScreen: React.FC<RecipesScreenProps> = ({ onClose, onNavigateToTrac
                     How to Save Recipes
                   </Text>
                   <Text className="text-green-700 text-xs leading-4">
-                    {"1. Tap the green ➕ button to generate recipes\n2. Or ask the AI Assistant for recipes\n3. All recipes include calculated oxalate content"}
+                    {"1. Tap the green ➕ button for recipe options\n2. Choose AI generation or manual builder\n3. All recipes include calculated oxalate content"}
                   </Text>
                 </View>
               </View>
@@ -342,7 +355,7 @@ const RecipesScreen: React.FC<RecipesScreenProps> = ({ onClose, onNavigateToTrac
             <Ionicons name="restaurant-outline" size={64} color="#d1d5db" />
             <Text className="text-xl text-gray-500 mt-4 font-medium">No Recipes Yet</Text>
             <Text className="text-gray-400 text-center mt-2 px-4">
-              Tap the green ➕ button to generate your first recipe!
+              Tap the green ➕ button to create your first recipe!
             </Text>
           </View>
         ) : (
@@ -350,20 +363,75 @@ const RecipesScreen: React.FC<RecipesScreenProps> = ({ onClose, onNavigateToTrac
         )}
       </ScrollView>
 
-      {/* Floating Action Button - Generate Recipe */}
+      {/* Floating Action Button - Create Recipe */}
       {canCreateRecipe() ? (
-        <Pressable
-          onPress={() => {
-            if (subscriptionStatus === 'free') {
-              incrementRecipeCount();
-            }
-            setShowRecipeGenerator(true);
-          }}
-          className="absolute bottom-6 right-6 w-14 h-14 bg-green-500 rounded-full items-center justify-center shadow-lg"
-          style={{ elevation: 5 }}
-        >
-          <Ionicons name="add" size={28} color="white" />
-        </Pressable>
+        <>
+          {/* Options Menu Overlay */}
+          {showCreateOptions && (
+            <>
+              <Pressable
+                onPress={() => setShowCreateOptions(false)}
+                className="absolute inset-0 bg-black/20"
+                style={{ zIndex: 999 }}
+              />
+              <View 
+                className="absolute bottom-20 right-6" 
+                style={{ zIndex: 1000 }}
+              >
+                {/* AI Generate Option */}
+                <Pressable
+                  onPress={() => {
+                    setShowCreateOptions(false);
+                    if (subscriptionStatus === 'free') {
+                      incrementRecipeCount();
+                    }
+                    setShowRecipeGenerator(true);
+                  }}
+                  className="mb-3 flex-row items-center bg-white rounded-lg px-4 py-3 shadow-lg"
+                  style={{ elevation: 3 }}
+                >
+                  <View className="w-10 h-10 bg-purple-100 rounded-full items-center justify-center mr-3">
+                    <Ionicons name="sparkles" size={20} color="#8b5cf6" />
+                  </View>
+                  <View className="flex-1">
+                    <Text className="text-base font-medium text-gray-900">AI Recipe Generator</Text>
+                    <Text className="text-sm text-gray-500">Let AI create recipes for you</Text>
+                  </View>
+                </Pressable>
+
+                {/* Manual Create Option */}
+                <Pressable
+                  onPress={() => {
+                    setShowCreateOptions(false);
+                    setShowManualBuilder(true);
+                  }}
+                  className="flex-row items-center bg-white rounded-lg px-4 py-3 shadow-lg"
+                  style={{ elevation: 3 }}
+                >
+                  <View className="w-10 h-10 bg-blue-100 rounded-full items-center justify-center mr-3">
+                    <Ionicons name="create-outline" size={20} color="#3b82f6" />
+                  </View>
+                  <View className="flex-1">
+                    <Text className="text-base font-medium text-gray-900">Manual Recipe Builder</Text>
+                    <Text className="text-sm text-gray-500">Build your own recipe</Text>
+                  </View>
+                </Pressable>
+              </View>
+            </>
+          )}
+
+          {/* Main FAB */}
+          <Pressable
+            onPress={() => setShowCreateOptions(!showCreateOptions)}
+            className={cn(
+              "absolute bottom-6 right-6 w-14 h-14 rounded-full items-center justify-center shadow-lg transition-all",
+              showCreateOptions ? "bg-red-500 rotate-45" : "bg-green-500"
+            )}
+            style={{ elevation: 5, zIndex: 1001 }}
+          >
+            <Ionicons name="add" size={28} color="white" />
+          </Pressable>
+        </>
       ) : (
         <PremiumGate 
           feature="recipes" 
@@ -390,6 +458,17 @@ const RecipesScreen: React.FC<RecipesScreenProps> = ({ onClose, onNavigateToTrac
           setShowRecipeModal(true);
         }}
         onNavigateToTracker={onNavigateToTracker}
+      />
+
+      {/* Manual Recipe Builder Modal */}
+      <ManualRecipeBuilder
+        visible={showManualBuilder}
+        onClose={() => setShowManualBuilder(false)}
+        onRecipeCreated={(recipe) => {
+          setSelectedRecipe(recipe);
+          setShowManualBuilder(false);
+          setShowRecipeModal(true);
+        }}
       />
 
       {/* Recipe Detail Modal */}
@@ -447,7 +526,7 @@ const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({ recipe, visible, 
     if (minutes < 60) return `${minutes} minutes`;
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
-    return mins > 0 ? `${hours}h ${mins}m` : `${hours} hour${hours > 1 ? 's' : ''}`;
+    return mins > 0 ? `${hours}h ${mins}m` : `${hours} ${hours > 1 ? 'hours' : 'hour'}`;
   };
 
   return (
@@ -520,7 +599,7 @@ const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({ recipe, visible, 
                   className="font-bold text-lg"
                   style={{ color: getCategoryColor(recipe.category) }}
                 >
-                  {recipe.oxalatePerServing.toFixed(1)} mg
+                  {(recipe.oxalatePerServing || 0).toFixed(1)} mg
                 </Text>
                 <Text className="text-gray-600 ml-2">oxalate per serving</Text>
               </View>

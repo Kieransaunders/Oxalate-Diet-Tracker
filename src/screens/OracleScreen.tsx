@@ -18,15 +18,17 @@ import { useUserPreferencesStore } from '../state/userPreferencesStore';
 import { useSubscriptionStore } from '../state/subscriptionStore';
 import { enhanceQuestionWithContext, quickOracleQuestions, popularOracleQuestions } from '../api/chat-oracle-api';
 // import PremiumGate from '../components/PremiumGate'; // Not currently used
+import ConsistentHeader from '../components/ConsistentHeader';
 import { cn } from '../utils/cn';
 
 interface OracleScreenProps {
-  visible: boolean;
-  onClose: () => void;
+  visible?: boolean;
+  onClose?: () => void;
   contextFood?: string;
+  isTabScreen?: boolean;
 }
 
-const OracleScreen: React.FC<OracleScreenProps> = ({ visible, onClose, contextFood }) => {
+const OracleScreen: React.FC<OracleScreenProps> = ({ visible = true, onClose, contextFood, isTabScreen = false }) => {
   const insets = useSafeAreaInsets();
   const [inputText, setInputText] = useState('');
   const [showQuickQuestions, setShowQuickQuestions] = useState(true);
@@ -47,9 +49,9 @@ const OracleScreen: React.FC<OracleScreenProps> = ({ visible, onClose, contextFo
   const getOracleTitle = () => {
     switch (userPreferences.dietType) {
       case 'low-oxalate':
-        return 'Oxalate Oracle - Your Low-Oxalate Guide';
+        return 'Oxalate Oracle - Your Diet Guide';
       case 'moderate-oxalate':
-        return 'Oxalate Oracle - Your Balanced Guide';
+        return 'Oxalate Oracle - Your Diet Guide';
       case 'high-oxalate':
         return 'Oxalate Oracle - Your Nutrition Guide';
       case 'unrestricted':
@@ -68,10 +70,10 @@ const OracleScreen: React.FC<OracleScreenProps> = ({ visible, onClose, contextFo
         return [
           "What are the best low-oxalate breakfast options?",
           "Which cooking methods reduce oxalate content?",
-          "What are safe daily oxalate limits for kidney stone prevention?",
+          "What are safe daily oxalate limits for dietary tracking?",
           "Can I eat spinach on a low-oxalate diet?",
           "What are good substitutes for high-oxalate foods?",
-          "Should I take calcium with meals?",
+          "How do I calculate oxalate in homemade meals?",
         ];
       case 'moderate-oxalate':
         return [
@@ -89,7 +91,7 @@ const OracleScreen: React.FC<OracleScreenProps> = ({ visible, onClose, contextFo
           "What are the best preparation methods for nutrient absorption?",
           "How do I optimize nutrition from oxalate-rich vegetables?",
           "Can I still enjoy chocolate and tea?",
-          "What supplements help with oxalate absorption?",
+          "What are the best food combinations for balanced nutrition?",
         ];
       case 'unrestricted':
         return [
@@ -98,7 +100,7 @@ const OracleScreen: React.FC<OracleScreenProps> = ({ visible, onClose, contextFo
           "What's the science behind oxalate metabolism?",
           "Are there any benefits to tracking oxalate intake?",
           "Should I be concerned about oxalates in my diet?",
-          "How do I know if I'm sensitive to oxalates?",
+          "How do I track my daily dietary intake effectively?",
         ];
       default:
         return popularOracleQuestions.slice(0, 6);
@@ -260,67 +262,37 @@ const OracleScreen: React.FC<OracleScreenProps> = ({ visible, onClose, contextFo
     );
   };
 
+  const ScreenWrapper = isTabScreen ? React.Fragment : Modal;
+  const screenWrapperProps = isTabScreen ? {} : {
+    visible,
+    animationType: "slide" as const,
+    presentationStyle: "pageSheet" as const,
+    onRequestClose: onClose,
+  };
+
+  const headerActions = [
+    {
+      icon: 'refresh-outline' as const,
+      onPress: clearChat,
+      testID: 'clear-chat-button',
+    },
+  ];
+
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      presentationStyle="pageSheet"
-      onRequestClose={onClose}
-    >
+    <ScreenWrapper {...screenWrapperProps}>
       <KeyboardAvoidingView 
         className="flex-1 bg-white"
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        {/* Header */}
-        <View 
-          className="bg-gradient-to-r from-purple-600 to-blue-600 px-6 py-4 border-b border-purple-700"
-          style={{ paddingTop: insets.top + 16 }}
-        >
-          <View className="flex-row items-center justify-between">
-            <View className="flex-1">
-              <View className="flex-row items-center mb-2">
-                <Text className="text-3xl mr-3">🔮</Text>
-                <View className="flex-1">
-                  <Text className="text-xl font-bold text-white">
-                    {getOracleTitle()}
-                  </Text>
-                </View>
-              </View>
-              
-
-            </View>
-            
-            <View className="flex-row items-center space-x-3">
-              <Pressable
-                onPress={clearChat}
-                style={{
-                  width: 32,
-                  height: 32,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  borderRadius: 16,
-                  backgroundColor: '#8b5cf6'
-                }}
-              >
-                <Ionicons name="refresh" size={16} color="white" />
-              </Pressable>
-              
-              <Pressable
-                onPress={onClose}
-                style={{
-                  width: 32,
-                  height: 32,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  borderRadius: 16,
-                  backgroundColor: '#8b5cf6'
-                }}
-              >
-                <Ionicons name="close" size={18} color="white" />
-              </Pressable>
-            </View>
-          </View>
-        </View>
+        <ConsistentHeader
+          title={getOracleTitle()}
+          emoji="🔮"
+          showBackButton={!isTabScreen}
+          onBackPress={onClose}
+          rightActions={headerActions}
+          centerTitle={true}
+          backgroundColor="#ffffff"
+        />
 
         {/* Tracking Info Banner */}
         <View className="bg-purple-50 border-b border-purple-200 px-4 py-3">
@@ -339,14 +311,14 @@ const OracleScreen: React.FC<OracleScreenProps> = ({ visible, onClose, contextFo
           </View>
         </View>
 
-        {/* Medical Disclaimer */}
+        {/* Nutritional Disclaimer */}
         {showDisclaimer && (
           <View className="bg-amber-50 border-b border-amber-200 px-4 py-3">
             <View className="flex-row items-start">
               <Ionicons name="warning" size={16} color="#f59e0b" />
               <View className="flex-1 ml-3">
                 <Text className="text-amber-800 text-xs leading-4">
-                  <Text className="font-semibold">Disclaimer:</Text> For informational purposes only. Consult your healthcare provider for medical advice.
+                  <Text className="font-semibold">Disclaimer:</Text> For informational purposes only. Consult your nutrition professional for dietary advice.
                 </Text>
               </View>
               <Pressable
@@ -485,7 +457,7 @@ const OracleScreen: React.FC<OracleScreenProps> = ({ visible, onClose, contextFo
           )}
         </View>
       </KeyboardAvoidingView>
-    </Modal>
+    </ScreenWrapper>
   );
 };
 

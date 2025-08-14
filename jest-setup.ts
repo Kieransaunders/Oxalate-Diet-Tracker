@@ -32,6 +32,20 @@ jest.mock('expo-application', () => ({
   getInstallationTimeAsync: jest.fn().mockResolvedValue(Date.now()),
 }));
 
+jest.mock('expo-network', () => ({
+  NetworkStateType: {
+    NONE: 'NONE',
+    WIFI: 'WIFI',
+    CELLULAR: 'CELLULAR',
+    UNKNOWN: 'UNKNOWN',
+  },
+  getNetworkStateAsync: jest.fn().mockResolvedValue({
+    type: 'WIFI',
+    isConnected: true,
+    isInternetReachable: true,
+  }),
+}));
+
 jest.mock('@react-native-async-storage/async-storage', () => ({
   getItem: jest.fn(),
   setItem: jest.fn(),
@@ -56,19 +70,11 @@ jest.mock('react-native-mmkv', () => ({
   })),
 }));
 
-// Mock RevenueCat
-jest.mock('react-native-purchases', () => ({
-  configure: jest.fn(),
-  getCustomerInfo: jest.fn(),
-  purchasePackage: jest.fn(),
-  restorePurchases: jest.fn(),
-  logIn: jest.fn(),
-  logOut: jest.fn(),
-  setDebugLogsEnabled: jest.fn(),
-  PurchasesPackage: {},
-  CustomerInfo: {},
-  EntitlementInfo: {},
-}));
+// Mock RevenueCat with comprehensive mock service
+jest.mock('react-native-purchases', () => {
+  const { createRevenueCatMock } = require('./src/test-utils/mockRevenueCat');
+  return createRevenueCatMock();
+});
 
 jest.mock('react-native-purchases-ui', () => ({
   presentPaywall: jest.fn(),

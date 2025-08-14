@@ -2,10 +2,20 @@ import { act, renderHook } from '@testing-library/react-native';
 import { useOxalateStore } from '../oxalateStore';
 import { createMockFood, createMockAsyncStorage } from '../../test-utils';
 import * as Network from 'expo-network';
+const { NetworkStateType } = Network;
 import { fetchOxalateFoods, searchOxalateFoods } from '../../api/oxalate-api';
 
 // Mock AsyncStorage
-jest.mock('@react-native-async-storage/async-storage', () => createMockAsyncStorage());
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  getItem: jest.fn(),
+  setItem: jest.fn(),
+  removeItem: jest.fn(),
+  clear: jest.fn(),
+  getAllKeys: jest.fn(),
+  multiGet: jest.fn(),
+  multiSet: jest.fn(),
+  multiRemove: jest.fn(),
+}));
 
 // Mock Network
 jest.mock('expo-network', () => ({
@@ -74,7 +84,7 @@ describe('oxalateStore', () => {
     mockNetwork.getNetworkStateAsync.mockResolvedValue({
       isConnected: true,
       isInternetReachable: true,
-      type: 'wifi',
+      type: NetworkStateType.WIFI,
     });
 
     // Default API response
@@ -101,7 +111,7 @@ describe('oxalateStore', () => {
       mockNetwork.getNetworkStateAsync.mockResolvedValue({
         isConnected: true,
         isInternetReachable: true,
-        type: 'wifi',
+        type: NetworkStateType.WIFI,
       });
 
       const { result } = renderHook(() => useOxalateStore());
@@ -119,7 +129,7 @@ describe('oxalateStore', () => {
       mockNetwork.getNetworkStateAsync.mockResolvedValue({
         isConnected: false,
         isInternetReachable: false,
-        type: 'none',
+        type: NetworkStateType.NONE,
       });
 
       const { result } = renderHook(() => useOxalateStore());
@@ -178,7 +188,7 @@ describe('oxalateStore', () => {
       mockNetwork.getNetworkStateAsync.mockResolvedValue({
         isConnected: false,
         isInternetReachable: false,
-        type: 'none',
+        type: NetworkStateType.NONE,
       });
 
       await act(async () => {

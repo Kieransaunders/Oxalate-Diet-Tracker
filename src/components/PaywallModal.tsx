@@ -6,7 +6,6 @@ import {
   Pressable,
   ScrollView,
   ActivityIndicator,
-  Alert,
   Linking,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -35,7 +34,19 @@ const PaywallModal: React.FC<PaywallModalProps> = ({ visible, onClose, feature }
     getRemainingOracleQuestions,
     getRemainingRecipes,
     getRemainingTrackingDays,
+    isLoading: storeLoading,
+    clearError,
   } = useSubscriptionStore();
+
+  // Use store loading state or local loading state
+  const effectiveLoading = isLoading || storeLoading;
+
+  // Clear any previous errors when modal opens
+  useEffect(() => {
+    if (visible) {
+      clearError();
+    }
+  }, [visible, clearError]);
 
   // Feature-specific content
   const getFeatureContent = () => {
@@ -80,16 +91,10 @@ const PaywallModal: React.FC<PaywallModalProps> = ({ visible, onClose, feature }
     try {
       const success = await purchaseProduct(productId);
       if (success) {
-        Alert.alert(
-          'Welcome to Premium!',
-          'Thank you for upgrading. You now have unlimited access to all features.',
-          [{ text: 'Get Started', onPress: onClose }]
-        );
-      } else {
-        Alert.alert('Purchase Failed', 'Please try again or contact support.');
+        // Success toast is handled by the store
+        onClose();
       }
-    } catch (error) {
-      Alert.alert('Purchase Error', 'Something went wrong. Please try again.');
+      // Error handling is now managed by the store
     } finally {
       setIsLoading(false);
     }
@@ -100,16 +105,10 @@ const PaywallModal: React.FC<PaywallModalProps> = ({ visible, onClose, feature }
     try {
       const success = await restorePurchases();
       if (success) {
-        Alert.alert(
-          'Purchases Restored!',
-          'Your premium subscription has been restored.',
-          [{ text: 'Continue', onPress: onClose }]
-        );
-      } else {
-        Alert.alert('No Purchases Found', 'No previous purchases were found for this account.');
+        // Success toast is handled by the store
+        onClose();
       }
-    } catch (error) {
-      Alert.alert('Restore Failed', 'Could not restore purchases. Please try again.');
+      // Error handling and info messages are now managed by the store
     } finally {
       setIsLoading(false);
     }
@@ -319,13 +318,13 @@ const PaywallModal: React.FC<PaywallModalProps> = ({ visible, onClose, feature }
             {/* Purchase Button */}
             <Pressable
               onPress={() => handlePurchase(selectedProduct)}
-              disabled={isLoading}
+              disabled={effectiveLoading}
               className={cn(
                 "bg-gradient-to-r from-purple-500 to-blue-500 rounded-xl py-4 mb-4",
-                isLoading && "opacity-50"
+                effectiveLoading && "opacity-50"
               )}
             >
-              {isLoading ? (
+              {effectiveLoading ? (
                 <ActivityIndicator size="small" color="white" />
               ) : (
                 <Text className="text-white font-bold text-center text-lg">
@@ -337,10 +336,13 @@ const PaywallModal: React.FC<PaywallModalProps> = ({ visible, onClose, feature }
             {/* Restore Purchases */}
             <Pressable
               onPress={handleRestore}
-              disabled={isLoading}
+              disabled={effectiveLoading}
               className="py-3"
             >
-              <Text className="text-purple-600 text-center font-medium">
+              <Text className={cn(
+                "text-center font-medium",
+                effectiveLoading ? "text-gray-400" : "text-purple-600"
+              )}>
                 Restore Purchases
               </Text>
             </Pressable>

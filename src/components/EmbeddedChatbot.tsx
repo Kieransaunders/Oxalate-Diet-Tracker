@@ -5,13 +5,13 @@ import {
   Modal,
   Pressable,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WebView, WebViewNavigation } from 'react-native-webview';
 import { Ionicons } from '@expo/vector-icons';
 import { useMealStore } from '../state/mealStore';
 import { useRecipeStore } from '../state/recipeStore';
+import { toast } from '../utils/toast';
 import type { Recipe } from '../types/recipe';
 
 interface EmbeddedChatbotProps {
@@ -139,23 +139,20 @@ const EmbeddedChatbot: React.FC<EmbeddedChatbotProps> = ({
         const parsedRecipe = parseRecipeFromText(data.content);
         
         if (parsedRecipe && parsedRecipe.title && parsedRecipe.category) {
-          Alert.alert(
+          toast.success(
             'Recipe Found!',
             `Found a recipe: "${parsedRecipe.title}". Would you like to save it?`,
-            [
-              { text: 'Cancel', style: 'cancel' },
-              {
-                text: 'Save Recipe',
-                onPress: () => {
-                  addRecipe(parsedRecipe as Omit<Recipe, 'id' | 'createdAt' | 'updatedAt'>);
-                  Alert.alert('Success', 'Recipe saved to your collection!');
-                  onRecipeSaved?.();
-                },
+            {
+              label: 'Save Recipe',
+              onPress: () => {
+                addRecipe(parsedRecipe as Omit<Recipe, 'id' | 'createdAt' | 'updatedAt'>);
+                toast.success('Success', 'Recipe saved to your collection!');
+                onRecipeSaved?.();
               },
-            ]
+            }
           );
         } else {
-          Alert.alert(
+          toast.info(
             'No Recipe Found',
             'Could not detect a recipe in the current chat. Make sure the AI has provided a complete recipe with ingredients and instructions.'
           );

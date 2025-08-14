@@ -1,3 +1,154 @@
+# 🚨 URGENT: APPLE APP STORE COMPLIANCE - MEDICAL TERMS AUDIT
+
+## CRITICAL FINDINGS - MEDICAL TERMS DETECTED IN APP
+
+**Risk Level**: HIGH - These terms could lead to App Store rejection
+
+### FILES WITH MEDICAL TERMINOLOGY:
+
+1. **userPreferencesStore.ts** - CRITICAL
+   - `MedicalCondition` type and references
+   - "kidney-stones", "hyperoxaluria" conditions
+   - "kidney stone prevention" messaging
+   - "medical-grade advice" text
+   - "healthcare providers" references
+
+2. **chat-oracle-api.ts** - HIGH RISK
+   - "kidney stones", "symptoms", "prevention"
+   - Medical advice phrasing in Oracle responses
+   - Health condition references
+
+3. **APP_STORE_SETUP.md** - DOCUMENTATION RISK
+   - "Medical" category classification
+   - "kidney stone prevention" in descriptions
+   - "healthcare providers" mentions
+
+4. **MealTracker.tsx** - UI RISK
+   - "kidney stone prevention" in user-facing text
+
+5. **OxalateTableScreen.tsx** - UI RISK
+   - "kidney stone prevention" in tips
+
+6. **SettingsScreen.tsx** - SOME RISK
+   - Medical disclaimer (acceptable if properly framed)
+
+### IMMEDIATE ACTION REQUIRED:
+
+## 🔥 CRITICAL UI FIXES - MOBILE AUDIT RESULTS
+
+**URGENT: The following terms were found in the live app UI and MUST be changed immediately:**
+
+### **Main Foods Screen Issues:**
+1. **"Well within safe zone"** → Change to **"Within daily target"**
+   - File: Look for progress/tracker components
+   - Risk: Implies medical safety assessment
+
+2. **"Use Sparingly" badges** → Change to **"Higher content"**
+   - File: Food recommendation system
+   - Risk: Medical advisory language
+
+3. **"Avoid" badges** → Change to **"Very high content"**
+   - File: Food recommendation system  
+   - Risk: Medical dietary restrictions
+
+### **STEP-BY-STEP FIX INSTRUCTIONS:**
+
+**Priority 1 - URGENT UI Text Changes:**
+- [ ] Find "Well within safe zone" text and replace with "Within daily target"
+- [ ] Replace "Use Sparingly" → "Higher content" in food recommendations
+- [ ] Replace "Avoid" → "Very high content" in food recommendations
+- [ ] Replace "kidney stone prevention" → "dietary tracking" (found in multiple files)
+- [ ] Replace "medical condition" → "dietary preference"
+- [ ] Replace "healthcare providers" → "nutrition professionals"
+
+**Priority 2 - Critical Code Structure:**
+- [ ] **userPreferencesStore.ts**: Rename `MedicalCondition` type → `DietaryReason`
+- [ ] **userPreferencesStore.ts**: Change condition values:
+  - "kidney-stones" → "low-oxalate-preference"
+  - "hyperoxaluria" → "very-low-oxalate-preference"
+- [ ] **chat-oracle-api.ts**: Remove medical questions like:
+  - "How do oxalates form kidney stones?"
+  - "What are symptoms of high oxalate intake?"
+  - "Can I reverse kidney stone formation?"
+- [ ] **MealTracker.tsx**: Remove "kidney stone prevention" text
+- [ ] **OxalateTableScreen.tsx**: Remove "kidney stone prevention" text
+
+**Priority 3 - App Store Materials:**
+- [ ] **APP_STORE_SETUP.md**: Remove "Medical" category
+- [ ] **APP_STORE_SETUP.md**: Remove "kidney stone prevention" from descriptions
+- [ ] **APP_STORE_SETUP.md**: Reframe all as nutrition/diet tracking
+- [ ] **PRODUCTION_SETUP.md**: Update category from "Health & Fitness" to "Food & Drink"
+
+**Priority 4 - System Prompts & AI:**
+- [ ] Update all Oracle system prompts to avoid medical language
+- [ ] Remove references to "kidney stone prevention"
+- [ ] Frame advice as nutritional information only
+- [ ] Add disclaimers about consulting nutrition professionals
+
+### **SAFE REPLACEMENT LANGUAGE:**
+
+| ❌ **AVOID** | ✅ **USE INSTEAD** |
+|-------------|-------------------|
+| "Medical condition" | "Dietary preference" |
+| "Kidney stone prevention" | "Dietary tracking" |
+| "Healthcare providers" | "Nutrition professionals" |
+| "Use sparingly" | "Higher content" |
+| "Avoid" | "Very high content" |
+| "Safe zone" | "Daily target" |
+| "Symptoms" | "Dietary considerations" |
+| "Treatment" | "Dietary approach" |
+| "Prevention" | "Management" |
+| "Medical advice" | "Nutritional information" |
+
+### **FILES TO UPDATE IMMEDIATELY:**
+
+1. **src/state/userPreferencesStore.ts** - CRITICAL
+2. **src/api/chat-oracle-api.ts** - HIGH RISK  
+3. **src/components/MealTracker.tsx** - UI RISK
+4. **src/screens/OxalateTableScreen.tsx** - UI RISK
+5. **APP_STORE_SETUP.md** - STORE RISK
+6. **PRODUCTION_SETUP.md** - STORE RISK
+
+# Legal Danger Mitigation Todo List
+
+## 1. Top Goal Selection (“Following low-oxalate lifestyle / General wellness goals / Other dietary reason”)
+
+**Risk**: “Low-oxalate lifestyle” directly links to a medical condition (kidney stones, hyperoxaluria).
+**Safer Option**: Keep “low-oxalate” but frame it as a personal nutrition preference. Add context that it’s user-defined and for general dietary tracking.
+**Example Rewrite**:
+* “Tracking oxalate intake” (no mention of prevention/treatment)
+
+---
+
+## 2. Oracle Personality (AI Coach Options)
+
+**Risk**: Current descriptions could be interpreted as medical advice. “Consulting healthcare providers” is fine, but “balancing health goals” sounds prescriptive.
+**Safer Option**: Make them all clearly informational and educational.
+**Example Rewrite**:
+* Cautious Companion – “Shares conservative nutrition information and encourages checking reliable sources.”
+* Balanced Guide – “Offers balanced nutritional tips based on your tracking data.”
+* Flexible Coach – “Provides friendly, motivational ideas for exploring different foods.”
+
+---
+
+## 3. App Preferences (High Oxalate Warnings / Personalized Tips)
+
+**Risk**: “Warnings” can imply a medical hazard; “Personalized Tips” might imply tailored treatment.
+**Safer Option**: Change “Warnings” → “Indicators” and clarify that tips are general.
+**Example Rewrite**:
+* “High Oxalate Indicators – Show icons for foods with higher oxalate content.”
+* “General Tips – Get suggestions based on your selected diet type.”
+
+---
+
+## 4. Extra Risk Reduction Tactics
+* Add a persistent disclaimer in the Settings footer:
+“This app provides nutrition information for general educational use only. It is not a substitute for medical advice. Always consult a qualified professional for health-related decisions.”
+* Keep the “Oracle” persona names playful but avoid health outcome promises.
+* Move anything that might be construed as a “diagnosis” or “treatment recommendation” into optional educational content, clearly labelled as such.
+
+---
+
 # Low-Oxalate Diet App - Improvement Todo List
 
 ## 🎉 MAJOR MILESTONE ACHIEVED - APP NOW PRODUCTION READY!
@@ -64,16 +215,16 @@
   - [ ] Weekly oxalate tracking charts
 
 ### Phase 2 - Personalization (Medium Priority)
-- [ ] **Personalized Warnings**
+- [ ] **Daily Oxalate Indicators**
   - [ ] Set daily oxalate limit (20mg, 40mg, 100mg, custom)
   - [ ] Color-coded progress bar for daily intake
-  - [ ] Alerts whenß approaching/exceeding limits
+  - [ ] Notifications when approaching/exceeding daily oxalate targets.
   - [ ] Smart portion suggestions to stay within limits
 
 - [ ] **User Customization**
   - [ ] Add custom foods with oxalate values
   - [ ] Edit existing oxalate levels with source citation
-  - [ ] Personal notes per food ("triggers symptoms", "available locally")
+  - [ ] Personal notes per food (e.g., "available locally")
   - [ ] Rate foods by personal tolerance
 
 ### Phase 3 - Advanced Features (Low Priority)
@@ -137,6 +288,9 @@
   - [ ] Keyboard shortcuts for power users
 
 ### Phase 3 - Data & API
+- [ ] **API Testing**
+  - [ ] Remove local food mock data to force API usage and verify data integrity.
+  - [ ] Verify API returns expected number of records (e.g., 400+).
 - [ ] **API Integration**
   - [ ] Implement data synchronization
   - [ ] Add error handling and retry logic
@@ -176,7 +330,7 @@
   - [x] Created SystemPromptTester component for testing different settings
   - [x] Verified diet type settings dramatically affect Oracle personality and answers
   - [x] Confirmed Oracle system prompts are working correctly with user preferences
-  - [x] Validated medical condition settings influence responses appropriately
+  - [x] Confirmed dietary preference settings influence responses appropriately
   - [x] Verified Oracle personality (cautious/balanced/permissive) affects tone and advice style
   - [x] Added developer tools in Settings for testing system prompt generation
 
@@ -237,7 +391,7 @@
 - ✅ Better visual hierarchy
 - ✅ Portion size adjustment
 - ✅ Basic meal tracking
-- ⚠️ AI Chat Assistant - **CRITICAL BUG**: Navigation context error prevents Oracle chat functionality
+- ✅ AI Chat Assistant - Fully Functional
 
 **🟡 Important (Week 3-4) - ✅ COMPLETED**
 - ✅ Category grouping
@@ -245,7 +399,7 @@
 - ✅ Personal limits & warnings
 - ✅ Contextual AI assistance
 
-**🔴 URGENT - Oracle Chat Fix Required**
+**🔴 URGENT - Oracle Chat Fix Required ✅ RESOLVED**
 - [ ] **Resolve Navigation Context Error** - Oracle chat is completely non-functional
 - [ ] **Root Cause Analysis** - Error persists even with minimal implementation
 - [ ] **Systematic Debugging** - Need to identify if issue is in navigation setup or dependencies

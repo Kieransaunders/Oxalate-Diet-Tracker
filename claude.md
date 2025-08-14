@@ -23,6 +23,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `npx eslint src/components/` - Lint specific directory
 - `npx prettier --write .` - Format all code with Prettier
 
+### Build & Distribution
+**IMPORTANT**: All EAS build and distribution commands are handled by the project owner. Do not run any `eas build`, `eas submit`, or related EAS commands.
+
 ## Overview
 A comprehensive React Native/Expo mobile application designed to help users manage a low-oxalate diet. The app combines a robust food database, meal tracking, AI-powered dietary guidance, and recipe management to support individuals with kidney stones or other conditions requiring oxalate monitoring.
 

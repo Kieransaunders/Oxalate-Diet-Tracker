@@ -191,6 +191,9 @@ export const getOxalateCategory = (oxalateMg: number): 'Low' | 'Medium' | 'High'
   return 'Very High';
 };
 
+// Alias for backward compatibility
+export const determineOxalateCategory = getOxalateCategory;
+
 // Map API category strings to our format
 export const mapApiCategory = (apiCategory: string): 'Low' | 'Medium' | 'High' | 'Very High' => {
   const normalized = apiCategory.toLowerCase();

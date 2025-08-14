@@ -1,17 +1,16 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import {
   View,
   Text,
   TextInput,
   ScrollView,
+  FlatList,
   Pressable,
   ActivityIndicator,
-  Alert,
   Keyboard,
   Modal,
   RefreshControl,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useOxalateStore } from '../state/oxalateStore';
 import { useMealStore } from '../state/mealStore';
@@ -19,51 +18,58 @@ import { useOracleStore } from '../state/oracleStore';
 import { useUserPreferencesStore } from '../state/userPreferencesStore';
 import { useSubscriptionStore } from '../state/subscriptionStore';
 import { getCategoryColor, getCategoryBackgroundColor, getCategoryBorderColor } from '../api/oxalate-api';
+import { toast } from '../utils/toast';
 import { cn } from '../utils/cn';
+import { useDebounce } from '../hooks/useDebounce';
 import NutritionModal from '../components/NutritionModal';
-import MealTracker from '../components/MealTracker';
 import DailyProgressBar from '../components/DailyProgressBar';
+import ConsistentHeader from '../components/ConsistentHeader';
 import OracleScreen from './OracleScreen';
-import BottomNavigation from '../components/BottomNavigation';
 import RecipesScreen from './RecipesScreen';
-import SettingsScreen from './SettingsScreen';
+
 import PaywallModal from '../components/PaywallModal';
 import type { OxalateCategory, OxalateFoodItem } from '../types/oxalate';
-import type { DietType } from '../types/userPreferences';
 
-const OxalateTableScreen = () => {
-  const insets = useSafeAreaInsets();
+interface OxalateTableScreenProps {
+  onNavigateToHome: () => void;
+  onNavigateToSettings?: () => void;
+  onNavigateToTracker?: () => void;
+}
+
+const OxalateTableScreen: React.FC<OxalateTableScreenProps> = ({ onNavigateToHome, onNavigateToSettings: _onNavigateToSettings, onNavigateToTracker }) => {
   const [selectedFood, setSelectedFood] = useState<OxalateFoodItem | null>(null);
   const [showNutritionModal, setShowNutritionModal] = useState(false);
-  const [showMealTracker, setShowMealTracker] = useState(false);
   const [showOracle, setShowOracle] = useState(false);
   const [showRecipes, setShowRecipes] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
+
   const [showPaywall, setShowPaywall] = useState(false);
   const [oracleContextFood, setOracleContextFood] = useState<string | undefined>(undefined);
   const [groupByCategory, setGroupByCategory] = useState(false);
   const [showRecommendedOnly, setShowRecommendedOnly] = useState(false);
+  const [searchInput, setSearchInput] = useState('');
 
   const scrollViewRef = useRef<ScrollView>(null);
+  const flatListRef = useRef<FlatList>(null);
   
   const {
     foods,
     filteredFoods,
     filters,
     isLoading,
-    error,
+    error: _error,
     fetchFoods,
     setSearch,
     toggleCategory,
     setSorting,
-
-    isOnline,
+    isOnline: _isOnline,
   } = useOxalateStore();
 
-  const { addMealItem, currentDay } = useMealStore();
+  const debouncedSearch = useDebounce(searchInput, 300);
+
+  const { addMealItem, currentDay: _currentDay } = useMealStore();
   const { clearChat } = useOracleStore();
   const { userPreferences } = useUserPreferencesStore();
-  const { startTracking, incrementTrackingDay } = useSubscriptionStore();
+  const { startTracking: _startTracking, incrementTrackingDay: _incrementTrackingDay } = useSubscriptionStore();
 
   const openNutritionModal = (food: OxalateFoodItem) => {
     setSelectedFood(food);
@@ -82,24 +88,12 @@ const OxalateTableScreen = () => {
     setSelectedFood(null);
     
     // Show a brief success feedback
-    Alert.alert('Added to Meal', `${food.name} added to your daily tracker!`, [
-      { 
-        text: 'View Tracker', 
-        onPress: () => {
-          setTimeout(() => setShowMealTracker(true), 100);
-        }
-      },
-      { 
-        text: 'Ask Oracle', 
-        onPress: () => {
-          setTimeout(() => {
-            setOracleContextFood(food.name);
-            setShowOracle(true);
-          }, 100);
-        }
-      },
-      { text: 'OK' }
-    ]);
+    toast.success('Added to Meal', `${food.name} added to your daily tracker!`, {
+      label: 'View Tracker',
+      onPress: () => {
+        setTimeout(() => onNavigateToTracker?.(), 100);
+      }
+    });
   };
 
   const openOracleForFood = (foodName: string) => {
@@ -108,22 +102,22 @@ const OxalateTableScreen = () => {
     setShowOracle(true);
   };
 
-  const handleFoodsTabPress = () => {
-    // Scroll to top when Foods tab is tapped
-    scrollViewRef.current?.scrollTo({ y: 0, animated: true });
-  };
 
-  const handleRecipeSaved = () => {
-    // Show a brief confirmation and optionally open recipes
-    Alert.alert('Recipe Saved!', 'Your recipe has been saved successfully.', [
-      { text: 'OK' },
-      { text: 'View Recipes', onPress: () => setShowRecipes(true) },
-    ]);
-  };
+  // const handleRecipeSaved = () => {
+  //   // Show a brief confirmation with action to view recipes
+  //   toast.success('Recipe Saved!', 'Your recipe has been saved successfully.', {
+  //     label: 'View Recipes',
+  //     onPress: () => setShowRecipes(true)
+  //   });
+  // };
 
   useEffect(() => {
     fetchFoods();
   }, [fetchFoods]);
+
+  useEffect(() => {
+    setSearch(debouncedSearch);
+  }, [debouncedSearch, setSearch]);
 
   const categories: OxalateCategory[] = ['Low', 'Medium', 'High', 'Very High'];
 
@@ -208,7 +202,7 @@ const OxalateTableScreen = () => {
       case 'moderate':
         return {
           show: dietType === 'low-oxalate',
-          text: 'Use Sparingly',
+          text: 'Higher content',
           icon: 'warning' as const,
           color: '#d97706', // amber
           bgColor: '#fef3c7',
@@ -216,7 +210,7 @@ const OxalateTableScreen = () => {
       case 'avoid':
         return {
           show: true,
-          text: 'Avoid',
+          text: 'Very high content',
           icon: 'close-circle' as const,
           color: '#dc2626', // red
           bgColor: '#fee2e2',
@@ -242,22 +236,22 @@ const OxalateTableScreen = () => {
     }
   };
 
-  const getDietAwareMessage = () => {
-    const { dietType } = userPreferences;
-    
-    switch (dietType) {
-      case 'low-oxalate':
-        return 'Foods marked with ⭐ are excellent for kidney stone prevention';
-      case 'moderate-oxalate':
-        return 'Balanced approach - focus on foods marked ⭐ and 👍';
-      case 'high-oxalate':
-        return 'Enjoy nutrient-dense foods ⭐ with proper preparation methods';
-      case 'unrestricted':
-        return 'Browse all foods - oxalate content shown for educational purposes';
-      default:
-        return '';
-    }
-  };
+  // const getDietAwareMessage = () => {
+  //   const { dietType } = userPreferences;
+  //   
+  //   switch (dietType) {
+  //     case 'low-oxalate':
+  //       return 'Foods marked with ⭐ are excellent for dietary tracking';
+  //     case 'moderate-oxalate':
+  //       return 'Balanced approach - focus on foods marked ⭐ and 👍';
+  //     case 'high-oxalate':
+  //       return 'Enjoy nutrient-dense foods ⭐ with proper preparation methods';
+  //     case 'unrestricted':
+  //       return 'Browse all foods - oxalate content shown for educational purposes';
+  //     default:
+  //       return '';
+  //   }
+  // };
 
   // Get recommended foods based on user's diet type and filter state
   const recommendedFoods = React.useMemo(() => {
@@ -357,6 +351,121 @@ const OxalateTableScreen = () => {
       </Pressable>
     );
   };
+
+  const renderFoodItem = useCallback(({ item: food, index: _index }: { item: any; index: number }) => {
+    const backgroundColor = getCategoryBackgroundColor(food.category);
+    const borderColor = getCategoryBorderColor(food.category);
+    const recommendationBadge = getDietRecommendationBadge(food);
+    
+    return (
+      <Pressable
+        onPress={() => openNutritionModal(food)}
+        className="flex-row items-center px-4 py-3 border-b active:opacity-70"
+        style={{ 
+          backgroundColor,
+          borderBottomColor: borderColor,
+          borderBottomWidth: 1,
+        }}
+      >
+        {/* Traffic Light Indicator */}
+        <View
+          className="w-4 h-4 rounded-full mr-4 shadow-sm"
+          style={{ 
+            backgroundColor: getCategoryColor(food.category),
+            elevation: 2,
+          }}
+        />
+        
+        {/* Food Info - Fixed width to prevent pushing */}
+        <View className="flex-1 mr-3">
+          <View className="flex-row items-start">
+            <View className="flex-1 mr-2">
+              <View className="flex-row items-center flex-wrap">
+                <Text 
+                  className="font-semibold text-gray-900 text-base"
+                  numberOfLines={2}
+                  ellipsizeMode="tail"
+                >
+                  {food.name}
+                </Text>
+                {recommendationBadge.show && (
+                  <View 
+                    className="ml-2 px-2 py-0.5 rounded-full flex-row items-center"
+                    style={{ backgroundColor: recommendationBadge.bgColor }}
+                  >
+                    <Ionicons 
+                      name={recommendationBadge.icon} 
+                      size={10} 
+                      color={recommendationBadge.color} 
+                    />
+                    <Text 
+                      className="text-xs font-medium ml-1"
+                      style={{ color: recommendationBadge.color }}
+                    >
+                      {recommendationBadge.text}
+                    </Text>
+                  </View>
+                )}
+              </View>
+              {food.group && (
+                <Text className="text-sm text-gray-600 mt-0.5">{food.group}</Text>
+              )}
+              {food.serving_size && (
+                <Text className="text-xs text-gray-500 mt-1">
+                  Serving: {food.serving_size}
+                </Text>
+              )}
+              {food.calories && (
+                <Text className="text-xs text-gray-500">
+                  {food.calories} cal{food.protein_g ? ` • ${food.protein_g}g protein` : ''}{food.fiber_g ? ` • ${food.fiber_g}g fiber` : ''}
+                </Text>
+              )}
+            </View>
+            
+            {/* Action Icons - Fixed position */}
+            <View className="flex-row items-center">
+              <Pressable 
+                onPress={() => openNutritionModal(food)}
+                className="p-1 mr-1"
+              >
+                <Ionicons name="information-circle-outline" size={16} color="#6b7280" />
+              </Pressable>
+              <Pressable 
+                onPress={() => openOracleForFood(food.name)}
+                className="p-1"
+              >
+                <Ionicons name="chatbubble-outline" size={14} color="#10b981" />
+              </Pressable>
+            </View>
+          </View>
+        </View>
+        
+        {/* Oxalate Amount - Fixed width */}
+        <View className="items-end" style={{ minWidth: 80 }}>
+          <Text 
+            className="font-bold text-lg"
+            style={{ color: getCategoryColor(food.category) }}
+          >
+            {food.oxalate_mg} mg
+          </Text>
+          <Text 
+            className="text-xs font-semibold px-2 py-1 rounded-full text-white text-center"
+            style={{ 
+              backgroundColor: getCategoryColor(food.category),
+              minWidth: 60,
+            }}
+          >
+            {food.category}
+          </Text>
+        </View>
+        
+        {/* Arrow indicator - Fixed position */}
+        <View style={{ width: 24, alignItems: 'center' }}>
+          <Ionicons name="chevron-forward" size={16} color="#d1d5db" />
+        </View>
+      </Pressable>
+    );
+  }, [openNutritionModal, openOracleForFood]);
 
   const renderFoodRow = (food: any, index: number | string) => {
     const backgroundColor = getCategoryBackgroundColor(food.category);
@@ -473,6 +582,40 @@ const OxalateTableScreen = () => {
     );
   };
 
+  const renderListHeader = useCallback(() => (
+    <View className="bg-gray-50 px-4 py-3 border-b border-gray-200">
+      <View className="flex-row items-center justify-between">
+        {/* Name Column Header */}
+        <Pressable
+          className="flex-1 flex-row items-center"
+          onPress={() => setSorting('name')}
+        >
+          <Text className="font-semibold text-gray-700">Food Name</Text>
+          <Ionicons
+            name={getSortIcon('name')}
+            size={16}
+            color="#6b7280"
+            style={{ marginLeft: 4 }}
+          />
+        </Pressable>
+        
+        {/* Oxalate Column Header */}
+        <Pressable
+          className="flex-row items-center mr-4"
+          onPress={() => setSorting('oxalate')}
+        >
+          <Text className="font-semibold text-gray-700">Oxalate</Text>
+          <Ionicons
+            name={getSortIcon('oxalate')}
+            size={16}
+            color="#6b7280"
+            style={{ marginLeft: 4 }}
+          />
+        </Pressable>
+      </View>
+    </View>
+  ), [filters.sortBy, filters.sortDirection]);
+
   const renderHeader = () => (
     <View className="bg-gray-50 px-4 py-3 border-b border-gray-200">
       <View className="flex-row items-center justify-between">
@@ -510,31 +653,25 @@ const OxalateTableScreen = () => {
   // Remove error display since we gracefully fall back to mock data
   // if (error) { ... }
 
+
   return (
-    <View className="flex-1 bg-white" style={{ paddingTop: insets.top }}>
-      {/* Header */}
-      <View className="bg-white px-4 py-6 border-b border-gray-200">
-        <View className="flex-row items-start justify-between mb-2">
-          <View className="flex-1">
-            <Text className="text-2xl font-bold text-gray-900">
-              {userPreferences.dietType === 'low-oxalate' ? 'Low-Oxalate Foods' :
-               userPreferences.dietType === 'moderate-oxalate' ? 'Balanced Oxalate Foods' :
-               userPreferences.dietType === 'high-oxalate' ? 'Nutrient-Dense Foods' :
-               'Food Database'}
-            </Text>
-          </View>
-          <Pressable
-            onPress={() => setShowSettings(true)}
-            className="w-10 h-10 items-center justify-center rounded-full bg-gray-100 ml-4"
-          >
-            <Ionicons name="settings-outline" size={20} color="#374151" />
-          </Pressable>
-        </View>
-      </View>
+    <View className="flex-1 bg-white">
+      <ConsistentHeader
+        title="Foods"
+        showBackButton={true}
+        onBackPress={onNavigateToHome}
+        rightActions={[
+          {
+            icon: 'funnel-outline',
+            onPress: () => {/* TODO: Open filter modal */},
+            testID: 'filter-button',
+          },
+        ]}
+      />
 
       {/* Daily Progress Bar */}
       <DailyProgressBar
-        onOpenTracker={() => setShowMealTracker(true)}
+        onOpenTracker={() => onNavigateToTracker?.()}
       />
 
       {/* Search Bar */}
@@ -544,12 +681,15 @@ const OxalateTableScreen = () => {
           <TextInput
             className="flex-1 ml-2 text-gray-900"
             placeholder="Search foods or groups..."
-            value={filters.search}
-            onChangeText={setSearch}
+            value={searchInput}
+            onChangeText={setSearchInput}
             onSubmitEditing={Keyboard.dismiss}
           />
-          {filters.search ? (
-            <Pressable onPress={() => setSearch('')}>
+          {searchInput ? (
+            <Pressable onPress={() => {
+              setSearchInput('');
+              setSearch('');
+            }}>
               <Ionicons name="close-circle" size={20} color="#6b7280" />
             </Pressable>
           ) : null}
@@ -678,10 +818,26 @@ const OxalateTableScreen = () => {
         </ScrollView>
       ) : (
         // List View
-        <ScrollView 
-          ref={scrollViewRef} 
-          className="flex-1" 
-          showsVerticalScrollIndicator={false}
+        <FlatList
+          ref={flatListRef}
+          data={recommendedFoods}
+          renderItem={renderFoodItem}
+          keyExtractor={(item, index) => {
+            const hashString = `${item.name}-${item.oxalate_mg}-${item.category}-${item.group || ''}`;
+            return `list-${index}-${hashString.replace(/[^a-zA-Z0-9]/g, '').toLowerCase()}`;
+          }}
+          ListHeaderComponent={renderListHeader}
+          ListEmptyComponent={
+            !isLoading ? (
+              <View className="items-center justify-center py-12">
+                <Ionicons name="search" size={48} color="#d1d5db" />
+                <Text className="text-lg text-gray-500 mt-2">No foods found</Text>
+                <Text className="text-gray-400 mt-1 text-center px-4">
+                  Try adjusting your search or category filters
+                </Text>
+              </View>
+            ) : null
+          }
           refreshControl={
             <RefreshControl
               refreshing={isLoading}
@@ -689,29 +845,17 @@ const OxalateTableScreen = () => {
               tintColor="#16a34a"
             />
           }
-        >
-          {renderHeader()}
-          {recommendedFoods.map((food, index) => {
-            // Create stable key using multiple food properties to ensure uniqueness
-            const hashString = `${food.name}-${food.oxalate_mg}-${food.category}-${food.group || ''}`;
-            const stableKey = `list-${index}-${hashString.replace(/[^a-zA-Z0-9]/g, '').toLowerCase()}`;
-            return (
-              <View key={stableKey}>
-                {renderFoodRow(food, index)}
-              </View>
-            );
+          showsVerticalScrollIndicator={false}
+          initialNumToRender={20}
+          maxToRenderPerBatch={10}
+          windowSize={10}
+          removeClippedSubviews={true}
+          getItemLayout={(data, index) => ({
+            length: 85,
+            offset: 85 * index + 52,
+            index,
           })}
-          
-          {recommendedFoods.length === 0 && !isLoading && (
-            <View className="items-center justify-center py-12">
-              <Ionicons name="search" size={48} color="#d1d5db" />
-              <Text className="text-lg text-gray-500 mt-2">No foods found</Text>
-              <Text className="text-gray-400 mt-1 text-center px-4">
-                Try adjusting your search or category filters
-              </Text>
-            </View>
-          )}
-        </ScrollView>
+        />
       )}
 
       {/* Nutrition Modal */}
@@ -722,32 +866,7 @@ const OxalateTableScreen = () => {
         onAddToMeal={handleAddToMeal}
       />
 
-      {/* Meal Tracker Modal */}
-      <MealTracker
-        visible={showMealTracker}
-        onClose={() => setShowMealTracker(false)}
-        onOpenSettings={() => {
-          setShowMealTracker(false);
-          setShowSettings(true);
-        }}
-      />
 
-      {/* Bottom Navigation */}
-      <BottomNavigation
-        onFoodsPress={handleFoodsTabPress}
-        onRecipesPress={() => setShowRecipes(true)}
-        onChatPress={() => {
-          setOracleContextFood(undefined);
-          setShowOracle(true);
-        }}
-        onTrackerPress={() => {
-          // Start or increment tracking for free users
-          startTracking();
-          incrementTrackingDay();
-          setShowMealTracker(true);
-        }}
-        activeTab="foods"
-      />
 
       {/* Oracle Screen Modal */}
       <OracleScreen
@@ -770,16 +889,12 @@ const OxalateTableScreen = () => {
           onClose={() => setShowRecipes(false)} 
           onNavigateToTracker={() => {
             setShowRecipes(false);
-            setShowMealTracker(true);
+            onNavigateToTracker?.();
           }}
         />
       </Modal>
 
-      {/* Settings Screen */}
-      <SettingsScreen 
-        visible={showSettings}
-        onClose={() => setShowSettings(false)}
-      />
+
 
       {/* Paywall Modal - Rendered at top level to avoid nested modal issues */}
       <PaywallModal

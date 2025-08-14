@@ -23,16 +23,20 @@
       },
       "infoPlist": {
         "UISupportedInterfaceOrientations": [
+          "UIInterfaceOrientationPortrait",
           "UIInterfaceOrientationPortrait"
         ],
         "UISupportedInterfaceOrientations~ipad": [
+          "UIInterfaceOrientationPortrait",
+          "UIInterfaceOrientationPortraitUpsideDown",
           "UIInterfaceOrientationPortrait",
           "UIInterfaceOrientationPortraitUpsideDown"
         ],
         "NSCalendarsUsageDescription": "This app does not use calendar functionality",
         "NSRemindersUsageDescription": "This app does not use reminders functionality",
         "ITSAppUsesNonExemptEncryption": false
-      }
+      },
+      "buildNumber": "2"
     },
     "android": {
       "edgeToEdgeEnabled": true,
@@ -50,6 +54,13 @@
       "expo-sqlite",
       "expo-web-browser",
       "@sentry/react-native/expo"
-    ]
+    ],
+    "owner": "mrzang77",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/e1cc0f1e-62f6-4a20-bef5-b72644974925"
+    }
   }
 }

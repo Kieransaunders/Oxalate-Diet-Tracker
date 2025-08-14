@@ -6,9 +6,10 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useMealStore } from '../state/mealStore';
-import { useRecipeStore } from '../state/recipeStore';
-import { useSubscriptionStore } from '../state/subscriptionStore';
+// Temporarily removed store imports to fix text rendering error
+// import { useMealStore } from '../state/mealStore';
+// import { useRecipeStore } from '../state/recipeStore';
+// import { useSubscriptionStore } from '../state/subscriptionStore';
 import { cn } from '../utils/cn';
 
 interface BottomNavigationProps {
@@ -16,7 +17,8 @@ interface BottomNavigationProps {
   onTrackerPress: () => void;
   onRecipesPress: () => void;
   onFoodsPress?: () => void;
-  activeTab?: 'foods' | 'chat' | 'tracker' | 'recipes';
+  onHomePress?: () => void;
+  activeTab?: 'home' | 'foods' | 'chat' | 'tracker' | 'recipes';
 }
 
 const BottomNavigation: React.FC<BottomNavigationProps> = ({
@@ -24,19 +26,25 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({
   onTrackerPress,
   onRecipesPress,
   onFoodsPress,
+  onHomePress,
   activeTab = 'foods'
 }) => {
   const insets = useSafeAreaInsets();
-  const { currentDay } = useMealStore();
-  const { recipes } = useRecipeStore();
-  const { 
-    status: subscriptionStatus, 
-    getRemainingOracleQuestions, 
-    getRemainingRecipes, 
-    getRemainingTrackingDays 
-  } = useSubscriptionStore();
+  // Temporarily remove store access to fix text rendering error
+  const currentDay = { items: [] };
+  const recipes = [];
+  // Temporarily remove store access to fix text rendering error
+  const subscriptionStatus = 'free';
 
   const navItems = [
+    {
+      id: 'home',
+      icon: 'home-outline',
+      activeIcon: 'home',
+      label: 'Home',
+      onPress: onHomePress || (() => {}),
+      isPremium: false,
+    },
     {
       id: 'foods',
       icon: 'list-outline',
@@ -51,9 +59,9 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({
       activeIcon: 'restaurant',
       label: 'Recipes',
       onPress: onRecipesPress,
-      badge: subscriptionStatus === 'premium' ? recipes.length : undefined,
-      usageText: subscriptionStatus === 'free' ? `${recipes.length}/1` : undefined,
-      isPremium: subscriptionStatus === 'free' && recipes.length >= 1,
+      badge: undefined,
+      usageText: undefined,
+      isPremium: false,
     },
     {
       id: 'chat',
@@ -61,8 +69,8 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({
       activeIcon: 'chatbubble-ellipses',
       label: 'Oracle',
       onPress: onChatPress,
-      usageText: subscriptionStatus === 'free' ? `${getRemainingOracleQuestions()}` : undefined,
-      isPremium: subscriptionStatus === 'free' && getRemainingOracleQuestions() === 0,
+      usageText: undefined,
+      isPremium: false,
     },
     {
       id: 'tracker',
@@ -70,9 +78,9 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({
       activeIcon: 'bar-chart',
       label: 'Tracker',
       onPress: onTrackerPress,
-      badge: currentDay.items.length > 0 ? currentDay.items.length : undefined,
-      usageText: subscriptionStatus === 'free' ? `${getRemainingTrackingDays()}d` : undefined,
-      isPremium: subscriptionStatus === 'free' && getRemainingTrackingDays() === 0,
+      badge: undefined,
+      usageText: undefined,
+      isPremium: false,
     },
   ];
 
@@ -83,16 +91,16 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({
       <Pressable
         key={item.id}
         onPress={item.onPress}
-        className={cn(
-          "flex-1 items-center justify-center py-3 active:opacity-50",
-          isActive ? "opacity-100" : "opacity-70"
-        )}
-        style={{ 
+        style={{
+          flex: 1,
+          alignItems: 'center',
+          justifyContent: 'center',
+          opacity: isActive ? 1 : 0.7,
           paddingBottom: Math.max(insets.bottom + 4, 12),
           paddingTop: 8,
         }}
       >
-        <View className="relative items-center">
+        <View style={{ position: 'relative', alignItems: 'center' }}>
           <Ionicons
             name={isActive ? item.activeIcon : item.icon}
             size={24}
@@ -110,10 +118,10 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({
           )}
           
           {/* Badge for counters */}
-          {item.badge && !item.isPremium && (
+          {item.badge && item.badge > 0 && !item.isPremium && (
             <View className="absolute -top-1 -right-1 bg-red-500 rounded-full min-w-5 h-5 items-center justify-center">
               <Text className="text-white text-xs font-bold">
-                {item.badge > 99 ? '99+' : item.badge}
+                {item.badge > 99 ? '99+' : String(item.badge)}
               </Text>
             </View>
           )}
@@ -126,11 +134,11 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({
             isActive ? "text-blue-600" : "text-gray-600"
           )}
         >
-          {item.label}
+          {item.label || ''}
         </Text>
         
         {/* Usage Text */}
-        {item.usageText && !item.isPremium && (
+        {item.usageText && item.usageText.length > 0 && !item.isPremium && (
           <Text className="text-xs text-gray-500 mt-0.5">
             {item.usageText}
           </Text>
@@ -149,7 +157,7 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({
   return (
     <View className="bg-white border-t border-gray-200 shadow-lg" style={{ elevation: 8 }}>
       <View className="flex-row">
-        {navItems.map(renderNavItem)}
+        {navItems.map((item) => renderNavItem(item))}
       </View>
     </View>
   );

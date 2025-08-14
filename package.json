@@ -11,10 +11,12 @@
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "test:ci": "jest --ci --coverage --watchAll=false",
-    "test:update-snapshots": "jest --updateSnapshot"
+    "test:update-snapshots": "jest --updateSnapshot",
+    "validate:revenuecat": "ts-node scripts/validate-revenuecat-setup.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
+    "@expo/metro-runtime": "~5.0.4",
     "@expo/react-native-action-sheet": "^4.1.1",
     "@expo/vector-icons": "^14.1.0",
     "@react-native-async-storage/async-storage": "2.1.2",
@@ -61,6 +63,7 @@
     "expo-status-bar": "~2.2.3",
     "expo-symbols": "~0.4.5",
     "expo-system-ui": "~5.0.10",
+    "expo-updates": "~0.28.17",
     "expo-web-browser": "~14.2.0",
     "lottie-react-native": "7.2.2",
     "nativewind": "^4.1.23",
@@ -101,6 +104,7 @@
     "@typescript-eslint/eslint-plugin": "^8.29.1",
     "@typescript-eslint/parser": "^8.29.1",
     "babel-plugin-module-resolver": "^5.0.2",
+    "dotenv": "^17.2.1",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~9.2.0",
     "eslint-plugin-react": "^7.37.5",
@@ -110,6 +114,7 @@
     "jest-expo": "^53.0.9",
     "react-test-renderer": "^19.0.0",
     "ts-jest": "^29.4.1",
+    "ts-node": "^10.9.2",
     "typescript": "~5.8.3"
   },
   "private": true,

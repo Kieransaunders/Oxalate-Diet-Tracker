@@ -194,7 +194,7 @@ export const useMealStore = create<MealStore>()(
           cleanIngredientName = cleanIngredientName.replace(/^(?:a\s+|an\s+|the\s+|some\s+|few\s+|pinch\s+of\s+|dash\s+of\s+)/i, '');
           
           // Remove adjectives and descriptors
-          cleanIngredientName = cleanIngredientName.replace(/^(?:large\\s+|small\\s+|medium\\s+|fresh\\s+|frozen\\s+|dried\\s+|chopped\\s+|sliced\\s+|diced\\s+|minced\\s+|melted\\s+|softened\\s+|room\\s+temperature\\s+|all-purpose\\s+)/i, '');
+          cleanIngredientName = cleanIngredientName.replace(/^(?:large\s+|small\s+|medium\s+|fresh\s+|frozen\s+|dried\s+|chopped\s+|sliced\s+|diced\s+|minced\s+|melted\s+|softened\s+|room\s+temperature\s+|all-purpose\s+)/i, '');
           
           // Take only the main ingredient (before comma or parentheses)
           cleanIngredientName = cleanIngredientName.split(/[,(]/)[0].trim();

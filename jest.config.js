@@ -1,7 +1,7 @@
 const { defaults } = require('jest-config');
 
 module.exports = {
-  preset: 'react-native',
+  testEnvironment: '<rootDir>/jest-environment-jsdom-fix.js',
   setupFiles: [
     '<rootDir>/jest-polyfills.js'
   ],
@@ -18,7 +18,7 @@ module.exports = {
     '^.+\\.(js|jsx)$': 'babel-jest'
   },
   transformIgnorePatterns: [
-    'node_modules/(?!(react-native|@react-native|@expo|expo|@react-navigation|@react-native-async-storage|@react-native-clipboard|react-native-reanimated|react-native-gesture-handler|react-native-screens|react-native-safe-area-context|@shopify/flash-list|zustand|react-native-purchases|react-native-mmkv|nativewind)/)'
+    'node_modules/(?!(react-native|@react-native|@expo|expo|expo-network|expo-modules-core|@react-navigation|@react-native-async-storage|@react-native-clipboard|react-native-reanimated|react-native-gesture-handler|react-native-screens|react-native-safe-area-context|@shopify/flash-list|zustand|react-native-purchases|react-native-mmkv|nativewind)/)'
   ],
   testMatch: [
     '**/__tests__/**/*.(ts|tsx|js)',

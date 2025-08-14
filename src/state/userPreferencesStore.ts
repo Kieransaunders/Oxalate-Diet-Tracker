@@ -5,7 +5,7 @@ import {
   UserPreferencesStore, 
   defaultUserPreferences,
   DietType,
-  MedicalCondition,
+  DietaryReason,
   OxalateLevel
 } from '../types/userPreferences';
 
@@ -53,13 +53,13 @@ export const useUserPreferencesStore = create<UserPreferencesStore>()(
         }));
       },
 
-      setMedicalCondition: (condition: MedicalCondition | undefined) => {
+      setDietaryReason: (reason: DietaryReason | undefined) => {
         set((state) => ({
           userPreferences: {
             ...state.userPreferences,
-            medicalCondition: condition,
-            // Auto-adjust settings for medical conditions
-            ...(condition === 'kidney-stones' && {
+            dietaryReason: reason,
+            // Auto-adjust settings for dietary reasons
+            ...(reason === 'low-oxalate-preference' && {
               dietType: 'low-oxalate' as DietType,
               targetDailyLimit: 40,
               preferences: {
@@ -122,7 +122,7 @@ export const useUserPreferencesStore = create<UserPreferencesStore>()(
       // Getters
       getOracleSystemPrompt: () => {
         try {
-          const { dietType, medicalCondition, preferences } = get().userPreferences;
+          const { dietType, dietaryReason, preferences } = get().userPreferences;
           const personality = preferences?.oraclePersonality || 'balanced';
 
         let basePrompt = "You are the Oxalate Oracle, a knowledgeable and helpful nutrition assistant specializing in oxalate content and dietary guidance.";
@@ -130,7 +130,7 @@ export const useUserPreferencesStore = create<UserPreferencesStore>()(
         // Add diet type context
         switch (dietType) {
           case 'low-oxalate':
-            basePrompt += " The user follows a low-oxalate diet (under 40-50mg daily) and needs guidance on avoiding high-oxalate foods. Focus on kidney stone prevention, low-oxalate alternatives, and safe food preparation methods.";
+            basePrompt += " The user follows a low-oxalate diet (under 40-50mg daily) and needs guidance on avoiding high-oxalate foods. Focus on dietary tracking, low-oxalate alternatives, and safe food preparation methods.";
             break;
           case 'moderate-oxalate':
             basePrompt += " The user follows a moderate oxalate approach (50-100mg daily) and wants balanced nutrition while being mindful of oxalate content. Provide practical advice that balances health goals with lifestyle flexibility.";
@@ -143,17 +143,20 @@ export const useUserPreferencesStore = create<UserPreferencesStore>()(
             break;
         }
 
-        // Add medical condition context
-        if (medicalCondition) {
-          switch (medicalCondition) {
-            case 'kidney-stones':
-              basePrompt += " IMPORTANT: The user has a history of kidney stones. Always prioritize kidney stone prevention advice, emphasize hydration, and be conservative with oxalate recommendations.";
+        // Add dietary reason context
+        if (dietaryReason) {
+          switch (dietaryReason) {
+            case 'low-oxalate-preference':
+              basePrompt += " IMPORTANT: The user follows a low-oxalate preference. Always prioritize dietary tracking advice, emphasize hydration, and be conservative with oxalate recommendations.";
               break;
-            case 'hyperoxaluria':
-              basePrompt += " IMPORTANT: The user has hyperoxaluria and requires very strict oxalate management. Provide medical-grade advice and always recommend consulting healthcare providers for major dietary changes.";
+            case 'very-low-oxalate-preference':
+              basePrompt += " IMPORTANT: The user requires very strict oxalate management. Provide conservative advice and suggest consulting nutrition professionals for major dietary changes.";
+              break;
+            case 'general-wellness':
+              basePrompt += " The user is tracking oxalates for general wellness. Provide balanced advice and suggest consulting nutrition professionals for major dietary changes.";
               break;
             case 'other':
-              basePrompt += " The user has other medical considerations. Be conservative with advice and frequently suggest consulting with healthcare providers.";
+              basePrompt += " The user has other dietary considerations. Be conservative with advice and frequently suggest consulting with nutrition professionals.";
               break;
           }
         }
@@ -161,7 +164,7 @@ export const useUserPreferencesStore = create<UserPreferencesStore>()(
         // Add personality context
         switch (personality) {
           case 'cautious':
-            basePrompt += " Adopt a cautious, safety-first approach. Always err on the side of caution, provide conservative recommendations, and frequently suggest consulting healthcare providers.";
+            basePrompt += " Adopt a cautious, safety-first approach. Always err on the side of caution, provide conservative recommendations, and frequently suggest consulting nutrition professionals.";
             break;
           case 'balanced':
             basePrompt += " Provide balanced, practical advice that considers both health goals and lifestyle factors. Be informative but not overly restrictive.";

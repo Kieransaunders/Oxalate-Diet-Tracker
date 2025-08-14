@@ -25,6 +25,23 @@
       },
       "channel": "production",
       "autoIncrement": true
+    },
+    "app-store-review": {
+      "android": {
+        "buildType": "app-bundle"
+      },
+      "channel": "production",
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_APP_STORE_REVIEW": "true"
+      }
+    },
+    "testflight": {
+      "distribution": "internal",
+      "channel": "preview",
+      "env": {
+        "EXPO_PUBLIC_IS_TESTFLIGHT": "true"
+      }
     }
   },
   "submit": {

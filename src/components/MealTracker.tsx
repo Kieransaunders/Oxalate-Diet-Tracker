@@ -19,9 +19,10 @@ interface MealTrackerProps {
   visible: boolean;
   onClose: () => void;
   onOpenSettings?: () => void;
+  onHome?: () => void;
 }
 
-const MealTracker: React.FC<MealTrackerProps> = ({ visible, onClose, onOpenSettings }) => {
+const MealTracker: React.FC<MealTrackerProps> = ({ visible, onClose, onOpenSettings, onHome }) => {
   const {
     currentDay,
     removeMealItem,
@@ -70,7 +71,7 @@ const MealTracker: React.FC<MealTrackerProps> = ({ visible, onClose, onOpenSetti
     
     switch (dietType) {
       case 'low-oxalate':
-        return 'Track foods you eat throughout the day. Low-oxalate diets typically recommend staying under 40-50mg per day for kidney stone prevention.';
+        return 'Track foods you eat throughout the day. Low-oxalate diets typically recommend staying under 40-50mg per day for dietary management.';
       case 'moderate-oxalate':
         return 'Monitor your daily oxalate intake while maintaining nutritional balance. Aim for 50-100mg per day as a moderate approach.';
       case 'high-oxalate':
@@ -107,6 +108,14 @@ const MealTracker: React.FC<MealTrackerProps> = ({ visible, onClose, onOpenSetti
             )}
           </View>
           <View className="flex-row items-center">
+            {onHome && (
+              <Pressable
+                onPress={onHome}
+                className="w-8 h-8 items-center justify-center rounded-full bg-blue-100 mr-3"
+              >
+                <Ionicons name="home" size={20} color="#3b82f6" />
+              </Pressable>
+            )}
             {onOpenSettings && (
               <Pressable
                 onPress={onOpenSettings}

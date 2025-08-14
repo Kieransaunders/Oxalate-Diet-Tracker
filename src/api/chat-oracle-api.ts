@@ -125,7 +125,7 @@ export const quickOracleQuestions = [
   // Basics
   "What are oxalates and why should I limit them?",
   "What's a safe daily oxalate limit for me?",
-  "How do oxalates form kidney stones?",
+  "How do oxalates affect different people?",
 
   // High-risk foods
   "Which foods are highest in oxalates?",
@@ -151,9 +151,9 @@ export const quickOracleQuestions = [
   "What supplements should I avoid?",
 
   // Symptoms & health
-  "What are symptoms of high oxalate intake?",
+  "What are signs of high oxalate consumption?",
   "How long does it take to see results?",
-  "Can I reverse kidney stone formation?",
+  "How can I manage my oxalate intake effectively?",
 
   // Alternatives
   "What are good substitutes for high-oxalate foods?",
@@ -178,11 +178,11 @@ export const getOracleWisdom = (question: string): string => {
   const lowerQuestion = question.toLowerCase();
 
   if (lowerQuestion.includes('oxalate') && (lowerQuestion.includes('what') || lowerQuestion.includes('explain'))) {
-    return "The Oracle says: Oxalates are naturally occurring compounds found in many plant foods. Different people have different tolerance levels - some need to limit them for kidney stone prevention, while others can enjoy oxalate-rich foods as part of a balanced diet.";
+    return "The Oracle says: Oxalates are naturally occurring compounds found in many plant foods. Different people have different tolerance levels - some need to limit them for dietary tracking purposes, while others can enjoy oxalate-rich foods as part of a balanced diet.";
   }
 
   if (lowerQuestion.includes('limit') || lowerQuestion.includes('daily') || lowerQuestion.includes('much')) {
-    return "The Oracle recommends: Oxalate needs vary greatly by individual. Those with kidney stones may need 40-50mg daily, while others can consume 100-200mg+ safely. Your healthcare provider can help determine what's right for you.";
+    return "The Oracle recommends: Oxalate needs vary greatly by individual. Those on strict diets may need 40-50mg daily, while others can consume 100-200mg+ safely. A nutrition professional can help determine what's right for you.";
   }
 
   if (lowerQuestion.includes('spinach') || lowerQuestion.includes('high oxalate')) {

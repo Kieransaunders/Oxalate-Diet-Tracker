@@ -74,7 +74,7 @@ const TrackingProgress: React.FC<TrackingProgressProps> = ({ onOpenTracker, hide
       return 'Tracking for awareness';
     } else {
       if (progressPercentage <= 50) {
-        return 'Well within safe zone';
+        return 'Within daily target';
       } else if (progressPercentage <= 80) {
         return 'Good progress';
       } else if (progressPercentage <= 100) {

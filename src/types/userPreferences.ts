@@ -1,12 +1,12 @@
 export type DietType = 'low-oxalate' | 'moderate-oxalate' | 'high-oxalate' | 'unrestricted';
-export type MedicalCondition = 'kidney-stones' | 'hyperoxaluria' | 'other' | null;
+export type DietaryReason = 'low-oxalate-preference' | 'very-low-oxalate-preference' | 'general-wellness' | 'other' | null;
 export type OraclePersonality = 'cautious' | 'balanced' | 'permissive';
 export type OxalateLevel = 'low' | 'medium' | 'high';
 
 export interface UserPreferences {
   dietType: DietType;
   targetDailyLimit: number; // mg per day
-  medicalCondition?: MedicalCondition;
+  dietaryReason?: DietaryReason;
   preferences: {
     showHighOxalateWarnings: boolean;
     defaultRecipeType: OxalateLevel;
@@ -27,7 +27,7 @@ export interface UserPreferencesStore {
   // Actions
   setDietType: (dietType: DietType) => void;
   setTargetDailyLimit: (limit: number) => void;
-  setMedicalCondition: (condition: MedicalCondition | undefined) => void;
+  setDietaryReason: (reason: DietaryReason | undefined) => void;
   updatePreferences: (preferences: Partial<UserPreferences['preferences']>) => void;
   updateProfile: (profile: Partial<UserPreferences['profile']>) => void;
   resetToDefaults: () => void;
@@ -42,7 +42,7 @@ export interface UserPreferencesStore {
 export const defaultUserPreferences: UserPreferences = {
   dietType: 'low-oxalate',
   targetDailyLimit: 50,
-  medicalCondition: null,
+  dietaryReason: null,
   preferences: {
     showHighOxalateWarnings: true,
     defaultRecipeType: 'low',
@@ -58,7 +58,7 @@ export const defaultUserPreferences: UserPreferences = {
 
 // Preset daily limits based on diet type
 export const dietTypePresets = {
-  'low-oxalate': { limit: 40, description: 'Kidney stone prevention (strict)' },
+  'low-oxalate': { limit: 40, description: 'Low-oxalate lifestyle (strict tracking)' },
   'moderate-oxalate': { limit: 80, description: 'Balanced low-oxalate approach' },
   'high-oxalate': { limit: 150, description: 'Focus on nutrient density' },
   'unrestricted': { limit: 300, description: 'No oxalate restrictions' },
@@ -68,17 +68,17 @@ export const dietTypePresets = {
 export const oraclePersonalities = {
   cautious: {
     name: 'Cautious Guardian',
-    description: 'Conservative advice, emphasizes safety and medical guidance',
+    description: 'Shares conservative nutrition information and encourages checking reliable sources.',
     icon: '🛡️',
   },
   balanced: {
     name: 'Balanced Guide',
-    description: 'Practical advice balancing health goals with lifestyle',
+    description: 'Offers balanced nutritional tips based on your tracking data.',
     icon: '⚖️',
   },
   permissive: {
     name: 'Flexible Coach',
-    description: 'Encouraging approach, focuses on overall nutrition',
+    description: 'Provides friendly, motivational ideas for exploring different foods.',
     icon: '🌟',
   },
 } as const;

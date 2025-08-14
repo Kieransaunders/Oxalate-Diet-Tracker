@@ -2,10 +2,15 @@ import React, { useEffect } from "react";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { NavigationContainer } from "@react-navigation/native";
+import * as SplashScreen from 'expo-splash-screen';
 import * as Sentry from "@sentry/react-native";
-import OxalateTableScreen from "./src/screens/OxalateTableScreen";
+import { Platform } from 'react-native';
 import { useSubscriptionStore } from "./src/state/subscriptionStore";
+import { RootNavigator } from "./src/navigation/RootNavigator";
 import { configureRevenueCat } from "./src/config/revenuecat";
+
+// Keep the splash screen visible while we fetch resources
+SplashScreen.preventAutoHideAsync();
 
 /*
 IMPORTANT NOTICE: DO NOT REMOVE
@@ -33,7 +38,7 @@ Sentry.init({
   dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
   environment: __DEV__ ? "development" : "production",
   // Adds more context data to events (IP address, cookies, user, etc.)
-  // For more information, visit: https://docs.sentry.io/platforms/react-native/data-management/data-collected/
+  // For more information, visit: https://docs.sentry.io/platforms/react-native/manual-setup/
   sendDefaultPii: true,
   beforeSend(event) {
     // Don't send events in development unless explicitly needed
@@ -45,19 +50,51 @@ Sentry.init({
 });
 
 function App() {
-  const { initializePurchases } = useSubscriptionStore();
+  const { initializePurchases, updateCustomerInfo } = useSubscriptionStore();
 
   useEffect(() => {
-    // RevenueCat disabled for development - Oracle is unlocked
-    console.log('RevenueCat disabled - running in unlimited mode');
-    // Skip RevenueCat initialization to avoid API key errors
-  }, []);
+    async function initializeApp() {
+      try {
+        // Configure RevenueCat SDK first
+        const isConfigured = await configureRevenueCat();
+        
+        if (isConfigured) {
+          // Set up customer info update listener
+          let Purchases: any = null;
+          try {
+            if (Platform.OS === 'ios' || Platform.OS === 'android') {
+              const PurchasesModule = require('react-native-purchases');
+              Purchases = PurchasesModule.default;
+              
+              // Add listener for automatic customer info updates
+              Purchases.addCustomerInfoUpdateListener((customerInfo: any) => {
+                console.log('Customer info updated:', customerInfo);
+                updateCustomerInfo(customerInfo);
+              });
+            }
+          } catch (error) {
+            console.warn('Failed to set up customer info listener:', error);
+          }
+        }
+        
+        // Initialize purchases store
+        await initializePurchases();
+      } catch (error) {
+        console.warn('Failed to initialize purchases:', error);
+      } finally {
+        // Hide splash screen
+        await SplashScreen.hideAsync();
+      }
+    }
+
+    initializeApp();
+  }, [initializePurchases, updateCustomerInfo]);
 
   return (
     <SafeAreaProvider>
       <NavigationContainer>
         <StatusBar style="auto" />
-        <OxalateTableScreen />
+        <RootNavigator />
       </NavigationContainer>
     </SafeAreaProvider>
   );

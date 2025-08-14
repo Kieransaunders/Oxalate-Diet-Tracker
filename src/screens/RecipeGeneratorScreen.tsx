@@ -5,7 +5,6 @@ import {
   ScrollView,
   Pressable,
   TextInput,
-  Alert,
   ActivityIndicator,
   Modal,
 } from 'react-native';
@@ -16,6 +15,7 @@ import { useRecipeStore } from '../state/recipeStore';
 import { useMealStore } from '../state/mealStore';
 import { useOxalateStore } from '../state/oxalateStore';
 import { getOxalateCategory } from '../api/oxalate-api';
+import { toast } from '../utils/toast';
 import { cn } from '../utils/cn';
 
 interface RecipeGeneratorScreenProps {
@@ -75,34 +75,35 @@ const RecipeGeneratorScreen: React.FC<RecipeGeneratorScreenProps> = ({ visible, 
       }, foods);
 
       let message = `Recipe "${parsed.title}" saved and ${result.added} ingredients added to your daily tracker!`;
+      
+      // Clarify that it's per-person portions
+      if (parsed.servings > 1) {
+        message += `\n\n📊 Per-person portions added (recipe serves ${parsed.servings})`;
+      }
+      
       if (result.totalOxalate > 0) {
-        message += `\n\nTotal oxalate: ${result.totalOxalate.toFixed(1)}mg`;
+        message += `\nTotal oxalate: ${result.totalOxalate.toFixed(1)}mg per serving`;
       }
       if (result.notFound.length > 0) {
         message += `\n\nNote: ${result.notFound.length} ingredients couldn't be found in the food database: ${result.notFound.join(', ')}`;
       }
 
-      Alert.alert(
+      toast.success(
         'Recipe Saved & Ingredients Added',
         message,
-        [
-          { text: 'OK', style: 'cancel' },
-          { 
-            text: 'View Tracker', 
-            style: 'default',
-            onPress: () => {
-              if (onNavigateToTracker) {
-                onNavigateToTracker();
-              }
+        {
+          label: 'View Tracker',
+          onPress: () => {
+            if (onNavigateToTracker) {
+              onNavigateToTracker();
             }
           }
-        ]
+        }
       );
     } catch (error) {
-      Alert.alert(
-        'Error',
-        'Failed to save recipe and add ingredients to tracker. Please try again.',
-        [{ text: 'OK' }]
+      toast.error(
+        'Save Failed',
+        'Failed to save recipe and add ingredients to tracker. Please try again.'
       );
     }
   };
@@ -136,7 +137,7 @@ const RecipeGeneratorScreen: React.FC<RecipeGeneratorScreenProps> = ({ visible, 
         if (response.text.includes('Curated Recipe')) {
           // Brief toast-like feedback that fallback was used
           setTimeout(() => {
-            Alert.alert('Recipe Ready!', 'Served you a delicious recipe from our curated collection.', [{ text: 'Great!' }]);
+            toast.success('Recipe Ready!', 'Served you a delicious recipe from our curated collection.');
           }, 500);
         }
       } else if (response.error) {
@@ -153,7 +154,7 @@ const RecipeGeneratorScreen: React.FC<RecipeGeneratorScreenProps> = ({ visible, 
 
   const handleCustomRecipe = async () => {
     if (!customPrompt.trim()) {
-      Alert.alert('Please enter a recipe request');
+      toast.warning('Recipe Request Required', 'Please enter a recipe request.');
       return;
     }
     
@@ -183,7 +184,7 @@ const RecipeGeneratorScreen: React.FC<RecipeGeneratorScreenProps> = ({ visible, 
         // Show success message if this was a fallback recipe
         if (response.text.includes('Curated Recipe')) {
           setTimeout(() => {
-            Alert.alert('Recipe Ready!', 'Served you a delicious recipe from our curated collection.', [{ text: 'Great!' }]);
+            toast.success('Recipe Ready!', 'Served you a delicious recipe from our curated collection.');
           }, 500);
         }
       } else if (response.error) {
@@ -220,16 +221,14 @@ const RecipeGeneratorScreen: React.FC<RecipeGeneratorScreenProps> = ({ visible, 
         notes: `Generated on ${new Date().toLocaleDateString()}`
       });
 
-      Alert.alert(
+      toast.success(
         'Recipe Saved!',
-        `"${parsed.title}" has been saved to your recipe collection.`,
-        [{ text: 'OK' }]
+        `"${parsed.title}" has been saved to your recipe collection.`
       );
     } catch (error) {
-      Alert.alert(
-        'Error',
-        'Failed to save recipe. Please try again.',
-        [{ text: 'OK' }]
+      toast.error(
+        'Save Failed',
+        'Failed to save recipe. Please try again.'
       );
     }
   };
@@ -250,7 +249,7 @@ const RecipeGeneratorScreen: React.FC<RecipeGeneratorScreenProps> = ({ visible, 
       onRecipeCreated?.(recipeToSave);
       onClose();
     } catch (error) {
-      Alert.alert('Error', 'Failed to save recipe. Please try again.');
+      toast.error('Save Failed', 'Failed to save recipe. Please try again.');
     }
   };
 

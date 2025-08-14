@@ -95,10 +95,15 @@ export const useOxalateStore = create<OxalateStore>()(
       },
 
       setSearch: (search: string) => {
+        const trimmedSearch = search.trim();
         set((state) => ({
-          filters: { ...state.filters, search }
+          filters: { ...state.filters, search: trimmedSearch }
         }));
-        get().applyFilters();
+        
+        // Only apply filters if search has meaningful content
+        if (trimmedSearch !== get().filters.search.trim()) {
+          get().applyFilters();
+        }
       },
 
       toggleCategory: (category: OxalateCategory) => {
@@ -129,52 +134,57 @@ export const useOxalateStore = create<OxalateStore>()(
       applyFilters: () => {
         const { foods, filters } = get();
         
-        let filtered = [...foods];
-
-        // Apply search filter
-        if (filters.search) {
-          const searchLower = filters.search.toLowerCase();
-          filtered = filtered.filter(food => 
-            food.name.toLowerCase().includes(searchLower) ||
-            (food.group && food.group.toLowerCase().includes(searchLower)) ||
-            (food.aliases && food.aliases.some(alias => alias.toLowerCase().includes(searchLower)))
-          );
+        // Early return if no foods
+        if (foods.length === 0) {
+          set({ filteredFoods: [] });
+          return;
         }
 
-        // Apply category filter
-        filtered = filtered.filter(food => 
-          filters.selectedCategories.includes(food.category)
-        );
+        let filtered = foods;
+        
+        // Apply category filter first (most selective)
+        if (filters.selectedCategories.length < 4) { // Only filter if not all categories selected
+          const categorySet = new Set(filters.selectedCategories);
+          filtered = filtered.filter(food => categorySet.has(food.category));
+        }
 
-        // Apply sorting
-        filtered.sort((a, b) => {
-          let aValue: string | number;
-          let bValue: string | number;
+        // Apply search filter with optimized string matching
+        if (filters.search && filters.search.trim().length > 0) {
+          const searchTerms = filters.search.toLowerCase().trim().split(/\s+/);
+          
+          filtered = filtered.filter(food => {
+            const searchableText = [
+              food.name.toLowerCase(),
+              food.group?.toLowerCase() || '',
+              ...(food.aliases?.map(alias => alias.toLowerCase()) || [])
+            ].join(' ');
+            
+            // All search terms must match (AND logic)
+            return searchTerms.every(term => searchableText.includes(term));
+          });
+        }
 
+        // Apply sorting with memoized comparison functions
+        if (filtered.length > 1) {
+          const sortDirection = filters.sortDirection === 'asc' ? 1 : -1;
+          
           switch (filters.sortBy) {
             case 'name':
-              aValue = a.name.toLowerCase();
-              bValue = b.name.toLowerCase();
+              filtered.sort((a, b) => a.name.localeCompare(b.name) * sortDirection);
               break;
             case 'oxalate':
-              aValue = a.oxalate_mg;
-              bValue = b.oxalate_mg;
+              filtered.sort((a, b) => (a.oxalate_mg - b.oxalate_mg) * sortDirection);
               break;
-            case 'category':
+            case 'category': {
               const categoryOrder = { 'Low': 1, 'Medium': 2, 'High': 3, 'Very High': 4 };
-              aValue = categoryOrder[a.category];
-              bValue = categoryOrder[b.category];
+              filtered.sort((a, b) => {
+                return (categoryOrder[a.category] - categoryOrder[b.category]) * sortDirection;
+              });
               break;
-            default:
-              return 0;
+            }
+              break;
           }
-
-          if (filters.sortDirection === 'asc') {
-            return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
-          } else {
-            return aValue > bValue ? -1 : aValue < bValue ? 1 : 0;
-          }
-        });
+        }
 
         set({ filteredFoods: filtered });
       },
@@ -196,7 +206,7 @@ export const useOxalateStore = create<OxalateStore>()(
             get().applyFilters();
             return;
           }
-        } catch (error) {
+        } catch (_error) {
           console.log('Advanced search failed, falling back to local search');
         }
         

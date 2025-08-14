@@ -301,6 +301,29 @@ describe('mealStore', () => {
       expect(result.current.currentDay.items[0].food.name).toBe('Eggs');
       expect(result.current.currentDay.items[1].food.name).toBe('White Rice');
     });
+
+    it('should calculate correct oxalate portions for multi-serving recipes', () => {
+      const { result } = renderHook(() => useMealStore());
+      
+      // Recipe that serves 4 people
+      const recipe = {
+        title: 'Stew for 4',
+        ingredients: [
+          { name: 'eggs' }, // 5mg total oxalate from mock
+        ],
+        servings: 4,
+      };
+
+      let addResult: any;
+      act(() => {
+        addResult = result.current.addRecipeIngredients(recipe, mockFoodDatabase);
+      });
+
+      expect(addResult?.added).toBe(1);
+      expect(addResult?.totalOxalate).toBe(1.25); // 5mg / 4 servings = 1.25mg per person
+      expect(result.current.currentDay.items[0].oxalateAmount).toBe(1.25);
+      expect(result.current.currentDay.totalOxalate).toBe(1.25);
+    });
   });
 
   describe('getMealForDate', () => {

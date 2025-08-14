@@ -2,6 +2,9 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
+import { shouldBypassPremium, isTestingMode } from '../config/revenuecat';
+import { withRetry, mapRevenueCatError, handleSubscriptionError, type SubscriptionError } from '../utils/subscription-errors';
+import { toast } from '../utils/toast';
 
 // Dynamic import to handle cases where native module isn't available
 let Purchases: any = null;
@@ -12,8 +15,9 @@ try {
   if (Platform.OS === 'ios' || Platform.OS === 'android') {
     const PurchasesModule = require('react-native-purchases');
     Purchases = PurchasesModule.default;
-    CustomerInfo = PurchasesModule.CustomerInfo;
-    PurchasesOffering = PurchasesModule.PurchasesOffering;
+    // CustomerInfo and PurchasesOffering are for type reference only
+    // CustomerInfo = PurchasesModule.CustomerInfo;
+    // PurchasesOffering = PurchasesModule.PurchasesOffering;
   }
 } catch (error) {
   console.warn('react-native-purchases not available:', error);
@@ -22,11 +26,16 @@ try {
 export type SubscriptionStatus = 'free' | 'premium' | 'loading';
 
 // Type definitions that work even when native module isn't available
-type CustomerInfo = any;
-type PurchasesOffering = any;
+type CustomerInfoType = any;
+type PurchasesOfferingType = any;
 
 interface UsageLimits {
   oracleQuestions: {
+    // Free tier: 10 questions per month
+    monthlyLimit: number;
+    monthlyCount: number;
+    lastMonthlyResetDate: string; // ISO date string (YYYY-MM)
+    // Premium tier: 40 questions per day
     dailyLimit: number;
     todayCount: number;
     lastResetDate: string; // ISO date string
@@ -34,6 +43,10 @@ interface UsageLimits {
   recipes: {
     freeLimit: number;
     currentCount: number;
+    // Premium tier: 10 recipes per day
+    dailyLimit: number;
+    todayCount: number;
+    lastResetDate: string; // ISO date string
   };
   tracking: {
     freeDays: number;
@@ -45,8 +58,12 @@ interface UsageLimits {
 interface SubscriptionStore {
   // Subscription state
   status: SubscriptionStatus;
-  customerInfo: CustomerInfo | null;
-  offerings: PurchasesOffering[] | null;
+  customerInfo: CustomerInfoType | null;
+  offerings: PurchasesOfferingType[] | null;
+  
+  // Error state
+  lastError: SubscriptionError | null;
+  isLoading: boolean;
   
   // Usage tracking
   usageLimits: UsageLimits;
@@ -55,7 +72,8 @@ interface SubscriptionStore {
   initializePurchases: () => Promise<void>;
   restorePurchases: () => Promise<boolean>;
   purchaseProduct: (productId: string) => Promise<boolean>;
-  updateCustomerInfo: (info: CustomerInfo) => void;
+  updateCustomerInfo: (info: CustomerInfoType) => void;
+  clearError: () => void;
   
   // Usage tracking actions
   incrementOracleQuestions: () => boolean; // Returns true if under limit
@@ -73,20 +91,30 @@ interface SubscriptionStore {
   
   // Reset methods
   resetDailyLimits: () => void;
+  resetMonthlyLimits: () => void;
 }
 
 const getInitialUsageLimits = (): UsageLimits => ({
   oracleQuestions: {
-    dailyLimit: 5,
+    // Free tier: 10 questions per month
+    monthlyLimit: 10,
+    monthlyCount: 0,
+    lastMonthlyResetDate: new Date().toISOString().substring(0, 7), // Current month (YYYY-MM)
+    // Premium tier: 40 questions per day
+    dailyLimit: 40,
     todayCount: 0,
     lastResetDate: new Date().toISOString().split('T')[0], // Today's date
   },
   recipes: {
     freeLimit: 1,
     currentCount: 0,
+    // Premium tier: 10 recipes per day
+    dailyLimit: 10,
+    todayCount: 0,
+    lastResetDate: new Date().toISOString().split('T')[0], // Today's date
   },
   tracking: {
-    freeDays: 7,
+    freeDays: 3, // Changed from 7 to 3 days
     startDate: null,
     daysUsed: 0,
   },
@@ -95,6 +123,11 @@ const getInitialUsageLimits = (): UsageLimits => ({
 const isToday = (dateString: string): boolean => {
   const today = new Date().toISOString().split('T')[0];
   return dateString === today;
+};
+
+const isCurrentMonth = (monthString: string): boolean => {
+  const currentMonth = new Date().toISOString().substring(0, 7);
+  return monthString === currentMonth;
 };
 
 const getDaysDifference = (startDate: string): number => {
@@ -107,62 +140,185 @@ const getDaysDifference = (startDate: string): number => {
 export const useSubscriptionStore = create<SubscriptionStore>()(
   persist(
     (set, get) => ({
-      status: 'premium', // Default to premium for development
+      status: 'free', // Default to free for proper testing
       customerInfo: null,
       offerings: null,
+      lastError: null,
+      isLoading: false,
       usageLimits: getInitialUsageLimits(),
 
+      clearError: () => {
+        set({ lastError: null });
+      },
+
       initializePurchases: async () => {
-        // RevenueCat disabled for development - Oracle is unlocked
-        console.log('Purchases initialization skipped - running in unlimited mode');
-        set({ status: 'premium' });
+        set({ isLoading: true, lastError: null });
+        
+        try {
+          if (!Purchases) {
+            console.warn('Purchases module not available, setting to free status');
+            set({ status: 'free', isLoading: false });
+            return;
+          }
+          
+          // Check if testing mode or development bypasses are enabled
+          if (shouldBypassPremium() || isTestingMode()) {
+            console.log('Running in testing/bypass mode - setting premium status');
+            set({ status: 'premium', isLoading: false });
+            return;
+          }
+          
+          await withRetry(async () => {
+            // Get customer info and offerings
+            const customerInfo = await Purchases.getCustomerInfo();
+            const offerings = await Purchases.getOfferings();
+            const isPremium = customerInfo.entitlements.active['premium'] !== undefined;
+            
+            console.log('Customer info retrieved:', {
+              isPremium,
+              activeEntitlements: Object.keys(customerInfo.entitlements.active),
+              allEntitlements: Object.keys(customerInfo.entitlements.all),
+            });
+            
+            set({
+              status: isPremium ? 'premium' : 'free',
+              customerInfo,
+              offerings: offerings ? Object.values(offerings.all) : null,
+              isLoading: false,
+              lastError: null,
+            });
+            
+            console.log(`Subscription status initialized: ${isPremium ? 'premium' : 'free'}`);
+          }, { maxRetries: 2 });
+          
+        } catch (error) {
+          const mappedError = mapRevenueCatError(error);
+          console.error('Failed to initialize purchases:', mappedError);
+          
+          // Set error state but don't show toast for initialization failures
+          // as this is usually done silently in the background
+          set({ 
+            status: 'free',
+            lastError: mappedError,
+            isLoading: false 
+          });
+        }
       },
 
       restorePurchases: async () => {
+        set({ isLoading: true, lastError: null });
+        
         try {
           if (!Purchases) {
             console.warn('Purchases module not available');
+            set({ isLoading: false });
+            toast.error('Feature Unavailable', 'Purchase restoration is not available on this platform.');
             return false;
           }
           
-          const customerInfo = await Purchases.restorePurchases();
-          const isPremium = customerInfo.entitlements.active['premium'] !== undefined;
+          const result = await withRetry(async () => {
+            const customerInfo = await Purchases.restorePurchases();
+            const isPremium = customerInfo.entitlements.active['premium'] !== undefined;
+            
+            set({
+              status: isPremium ? 'premium' : 'free',
+              customerInfo,
+              isLoading: false,
+              lastError: null,
+            });
+            
+            return isPremium;
+          }, { maxRetries: 2 });
           
-          set({
-            status: isPremium ? 'premium' : 'free',
-            customerInfo,
+          if (result) {
+            toast.success(
+              'Purchases Restored!',
+              'Your premium subscription has been restored successfully.'
+            );
+          } else {
+            toast.info(
+              'No Purchases Found',
+              'No previous purchases were found for this account.'
+            );
+          }
+          
+          return result;
+          
+        } catch (error) {
+          const mappedError = mapRevenueCatError(error);
+          set({ 
+            lastError: mappedError,
+            isLoading: false 
           });
           
-          return isPremium;
-        } catch (error) {
-          console.error('Failed to restore purchases:', error);
+          handleSubscriptionError(mappedError, () => {
+            // Retry restore purchases
+            get().restorePurchases();
+          });
+          
           return false;
         }
       },
 
       purchaseProduct: async (productId: string) => {
+        set({ isLoading: true, lastError: null });
+        
         try {
           if (!Purchases) {
             console.warn('Purchases module not available');
+            set({ isLoading: false });
+            toast.error('Feature Unavailable', 'Purchases are not available on this platform.');
             return false;
           }
           
-          const purchaseResult = await Purchases.purchaseProduct(productId);
-          const isPremium = purchaseResult.customerInfo.entitlements.active['premium'] !== undefined;
+          const result = await withRetry(async () => {
+            const purchaseResult = await Purchases.purchaseProduct(productId);
+            const isPremium = purchaseResult.customerInfo.entitlements.active['premium'] !== undefined;
+            
+            set({
+              status: isPremium ? 'premium' : 'free',
+              customerInfo: purchaseResult.customerInfo,
+              isLoading: false,
+              lastError: null,
+            });
+            
+            return isPremium;
+          }, { maxRetries: 1 }); // Fewer retries for purchases to avoid double charges
           
-          set({
-            status: isPremium ? 'premium' : 'free',
-            customerInfo: purchaseResult.customerInfo,
+          if (result) {
+            toast.success(
+              'Welcome to Premium!',
+              'Thank you for upgrading. You now have unlimited access to all features.'
+            );
+          }
+          
+          return result;
+          
+        } catch (error) {
+          const mappedError = mapRevenueCatError(error);
+          set({ 
+            lastError: mappedError,
+            isLoading: false 
           });
           
-          return isPremium;
-        } catch (error) {
-          console.error('Failed to purchase product:', error);
+          // Special handling for product already purchased error
+          if (mappedError.code === 'PRODUCT_ALREADY_PURCHASED_ERROR') {
+            handleSubscriptionError(mappedError, () => {
+              // Retry with restore purchases instead
+              get().restorePurchases();
+            });
+          } else {
+            handleSubscriptionError(mappedError, () => {
+              // Retry purchase
+              get().purchaseProduct(productId);
+            });
+          }
+          
           return false;
         }
       },
 
-      updateCustomerInfo: (info: CustomerInfo) => {
+      updateCustomerInfo: (info: CustomerInfoType) => {
         const isPremium = info.entitlements.active['premium'] !== undefined;
         set({
           status: isPremium ? 'premium' : 'free',
@@ -171,12 +327,151 @@ export const useSubscriptionStore = create<SubscriptionStore>()(
       },
 
       incrementOracleQuestions: () => {
-        // Oracle is unlocked - always allow questions
+        const { status, usageLimits } = get();
+        
+        // Bypass for testing mode or premium users
+        if (shouldBypassPremium() || status === 'premium') {
+          const today = new Date().toISOString().split('T')[0];
+          
+          // Check daily limit for premium users
+          if (status === 'premium' && !shouldBypassPremium()) {
+            const { dailyLimit, todayCount, lastResetDate } = usageLimits.oracleQuestions;
+            
+            // Reset daily counter if it's a new day
+            if (lastResetDate !== today) {
+              set({
+                usageLimits: {
+                  ...usageLimits,
+                  oracleQuestions: {
+                    ...usageLimits.oracleQuestions,
+                    todayCount: 0,
+                    lastResetDate: today,
+                  },
+                },
+              });
+            }
+            
+            if (get().usageLimits.oracleQuestions.todayCount >= dailyLimit) {
+              return false;
+            }
+            
+            // Increment premium daily count
+            set({
+              usageLimits: {
+                ...get().usageLimits,
+                oracleQuestions: {
+                  ...get().usageLimits.oracleQuestions,
+                  todayCount: get().usageLimits.oracleQuestions.todayCount + 1,
+                },
+              },
+            });
+            return true;
+          }
+          
+          // Bypass mode - always allow
+          return true;
+        }
+        
+        // Free tier - check monthly limit
+        const { monthlyLimit, lastMonthlyResetDate } = usageLimits.oracleQuestions;
+        const currentMonth = new Date().toISOString().substring(0, 7);
+        
+        // Reset monthly counter if it's a new month
+        if (lastMonthlyResetDate !== currentMonth) {
+          set({
+            usageLimits: {
+              ...usageLimits,
+              oracleQuestions: {
+                ...usageLimits.oracleQuestions,
+                monthlyCount: 0,
+                lastMonthlyResetDate: currentMonth,
+              },
+            },
+          });
+        }
+        
+        const currentLimits = get().usageLimits.oracleQuestions;
+        if (currentLimits.monthlyCount >= monthlyLimit) {
+          return false;
+        }
+        
+        // Increment monthly count
+        set({
+          usageLimits: {
+            ...get().usageLimits,
+            oracleQuestions: {
+              ...get().usageLimits.oracleQuestions,
+              monthlyCount: currentLimits.monthlyCount + 1,
+            },
+          },
+        });
+        
         return true;
       },
 
       incrementRecipeCount: () => {
-        // Recipe generation unlocked for testing - always allow
+        const { status, usageLimits } = get();
+        
+        // Bypass for testing mode
+        if (shouldBypassPremium()) {
+          return true;
+        }
+        
+        // Premium users - check daily limit
+        if (status === 'premium') {
+          const today = new Date().toISOString().split('T')[0];
+          const { dailyLimit, lastResetDate } = usageLimits.recipes;
+          
+          // Reset daily counter if it's a new day
+          if (lastResetDate !== today) {
+            set({
+              usageLimits: {
+                ...usageLimits,
+                recipes: {
+                  ...usageLimits.recipes,
+                  todayCount: 0,
+                  lastResetDate: today,
+                },
+              },
+            });
+          }
+          
+          const currentLimits = get().usageLimits.recipes;
+          if (currentLimits.todayCount >= dailyLimit) {
+            return false;
+          }
+          
+          // Increment daily count
+          set({
+            usageLimits: {
+              ...get().usageLimits,
+              recipes: {
+                ...get().usageLimits.recipes,
+                todayCount: currentLimits.todayCount + 1,
+              },
+            },
+          });
+          
+          return true;
+        }
+        
+        // Free tier - check total limit
+        const { freeLimit, currentCount } = usageLimits.recipes;
+        if (currentCount >= freeLimit) {
+          return false;
+        }
+        
+        // Increment total count for free users
+        set({
+          usageLimits: {
+            ...usageLimits,
+            recipes: {
+              ...usageLimits.recipes,
+              currentCount: currentCount + 1,
+            },
+          },
+        });
+        
         return true;
       },
 
@@ -235,19 +530,67 @@ export const useSubscriptionStore = create<SubscriptionStore>()(
       },
 
       canAskOracleQuestion: () => {
-        // Oracle is now unlocked - always return true
-        return true;
+        const { status, usageLimits } = get();
+        
+        // Bypass for testing mode
+        if (shouldBypassPremium()) return true;
+        
+        // Premium users - check daily limit
+        if (status === 'premium') {
+          const { dailyLimit, lastResetDate } = usageLimits.oracleQuestions;
+          const today = new Date().toISOString().split('T')[0];
+          
+          // Reset daily counter if it's a new day
+          if (lastResetDate !== today) {
+            get().resetDailyLimits();
+            return get().usageLimits.oracleQuestions.todayCount < dailyLimit;
+          }
+          
+          return todayCount < dailyLimit;
+        }
+        
+        // Free users - check monthly limit
+        const { monthlyLimit, monthlyCount, lastMonthlyResetDate } = usageLimits.oracleQuestions;
+        const currentMonth = new Date().toISOString().substring(0, 7);
+        
+        // Reset monthly counter if it's a new month
+        if (lastMonthlyResetDate !== currentMonth) {
+          get().resetMonthlyLimits();
+          return get().usageLimits.oracleQuestions.monthlyCount < monthlyLimit;
+        }
+        
+        return monthlyCount < monthlyLimit;
       },
 
       canCreateRecipe: () => {
-        // Recipe creation unlocked for testing - always allow
-        return true;
+        const { status, usageLimits } = get();
+        
+        // Bypass for testing mode
+        if (shouldBypassPremium()) return true;
+        
+        // Premium users - check daily limit
+        if (status === 'premium') {
+          const { dailyLimit, todayCount, lastResetDate } = usageLimits.recipes;
+          const today = new Date().toISOString().split('T')[0];
+          
+          // Reset daily counter if it's a new day
+          if (lastResetDate !== today) {
+            get().resetDailyLimits();
+            return get().usageLimits.recipes.todayCount < dailyLimit;
+          }
+          
+          return todayCount < dailyLimit;
+        }
+        
+        // Free users - check total limit
+        return usageLimits.recipes.currentCount < usageLimits.recipes.freeLimit;
       },
 
       canTrack: () => {
         const { status, usageLimits } = get();
         
-        if (status === 'premium') return true;
+        // Bypass for testing mode or premium users
+        if (shouldBypassPremium() || status === 'premium') return true;
         
         if (!usageLimits.tracking.startDate) return true;
         
@@ -256,13 +599,57 @@ export const useSubscriptionStore = create<SubscriptionStore>()(
       },
 
       getRemainingOracleQuestions: () => {
-        // Oracle is unlocked - unlimited questions
-        return 999;
+        const { status, usageLimits } = get();
+        
+        // Bypass for testing mode
+        if (shouldBypassPremium()) return 999;
+        
+        // Premium users - daily limit
+        if (status === 'premium') {
+          const { dailyLimit, todayCount, lastResetDate } = usageLimits.oracleQuestions;
+          const today = new Date().toISOString().split('T')[0];
+          
+          // If it's a new day, return full daily limit
+          if (lastResetDate !== today) {
+            return dailyLimit;
+          }
+          
+          return Math.max(0, dailyLimit - todayCount);
+        }
+        
+        // Free users - monthly limit
+        const { monthlyLimit, monthlyCount, lastMonthlyResetDate } = usageLimits.oracleQuestions;
+        const currentMonth = new Date().toISOString().substring(0, 7);
+        
+        // If it's a new month, return full monthly limit
+        if (lastMonthlyResetDate !== currentMonth) {
+          return monthlyLimit;
+        }
+        
+        return Math.max(0, monthlyLimit - monthlyCount);
       },
 
       getRemainingRecipes: () => {
-        // Recipe generation unlocked for testing - unlimited
-        return 999;
+        const { status, usageLimits } = get();
+        
+        // Bypass for testing mode
+        if (shouldBypassPremium()) return 999;
+        
+        // Premium users - daily limit
+        if (status === 'premium') {
+          const { dailyLimit, todayCount, lastResetDate } = usageLimits.recipes;
+          const today = new Date().toISOString().split('T')[0];
+          
+          // If it's a new day, return full daily limit
+          if (lastResetDate !== today) {
+            return dailyLimit;
+          }
+          
+          return Math.max(0, dailyLimit - todayCount);
+        }
+        
+        // Free users - total limit
+        return Math.max(0, usageLimits.recipes.freeLimit - usageLimits.recipes.currentCount);
       },
 
       getRemainingTrackingDays: () => {
@@ -280,14 +667,46 @@ export const useSubscriptionStore = create<SubscriptionStore>()(
         const { usageLimits } = get();
         const today = new Date().toISOString().split('T')[0];
         
+        let updated = false;
+        const newUsageLimits = { ...usageLimits };
+        
+        // Reset Oracle daily limits (for premium users)
         if (!isToday(usageLimits.oracleQuestions.lastResetDate)) {
+          newUsageLimits.oracleQuestions = {
+            ...newUsageLimits.oracleQuestions,
+            todayCount: 0,
+            lastResetDate: today,
+          };
+          updated = true;
+        }
+        
+        // Reset Recipe daily limits (for premium users)
+        if (!isToday(usageLimits.recipes.lastResetDate)) {
+          newUsageLimits.recipes = {
+            ...newUsageLimits.recipes,
+            todayCount: 0,
+            lastResetDate: today,
+          };
+          updated = true;
+        }
+        
+        if (updated) {
+          set({ usageLimits: newUsageLimits });
+        }
+      },
+      
+      resetMonthlyLimits: () => {
+        const { usageLimits } = get();
+        const currentMonth = new Date().toISOString().substring(0, 7);
+        
+        if (!isCurrentMonth(usageLimits.oracleQuestions.lastMonthlyResetDate)) {
           set({
             usageLimits: {
               ...usageLimits,
               oracleQuestions: {
                 ...usageLimits.oracleQuestions,
-                todayCount: 0,
-                lastResetDate: today,
+                monthlyCount: 0,
+                lastMonthlyResetDate: currentMonth,
               },
             },
           });
