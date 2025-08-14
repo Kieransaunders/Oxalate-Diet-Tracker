@@ -535,6 +535,10 @@ interface RecipeDetailModalProps {
 const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({ recipe, visible, onClose, onEdit, onAddToTracker }) => {
   const insets = useSafeAreaInsets();
   const { toggleFavorite } = useRecipeStore();
+  // Subscribe to the live favorite state so the heart updates immediately
+  const liveIsFavorite = useRecipeStore(
+    (state) => state.recipes.find((r) => r.id === recipe.id)?.isFavorite
+  );
 
   const formatTime = (minutes?: number) => {
     if (!minutes) return 'N/A';
@@ -578,9 +582,9 @@ const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({ recipe, visible, 
                 className="w-10 h-10 items-center justify-center rounded-full bg-gray-100"
               >
                 <Ionicons
-                  name={recipe.isFavorite ? "heart" : "heart-outline"}
+                  name={liveIsFavorite ? "heart" : "heart-outline"}
                   size={20}
-                  color={recipe.isFavorite ? "#ef4444" : "#6b7280"}
+                  color={liveIsFavorite ? "#ef4444" : "#6b7280"}
                 />
               </Pressable>
               
