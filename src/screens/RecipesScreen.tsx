@@ -90,32 +90,10 @@ const RecipesScreen: React.FC<RecipesScreenProps> = ({ onClose, onNavigateToTrac
         servings: recipe.servings
       }, foods);
 
-      let message = `Added ${result.added} ingredients from "${recipe.title}" to your daily tracker!`;
-      
-      // Clarify that it's per-person portions
-      if (recipe.servings > 1) {
-        message += `\n\n📊 Per-person portions added (recipe serves ${recipe.servings})`;
+      // Navigate directly to tracker after adding
+      if (onNavigateToTracker) {
+        onNavigateToTracker();
       }
-      
-      if (result.totalOxalate && result.totalOxalate > 0) {
-        message += `\nTotal oxalate: ${result.totalOxalate.toFixed(1)}mg per serving`;
-      }
-      if (result.notFound.length > 0) {
-        message += `\n\nNote: ${result.notFound.length} ingredients couldn't be found in the food database: ${result.notFound.join(', ')}`;
-      }
-
-      toast.success(
-        'Ingredients Added to Tracker',
-        message,
-        {
-          label: 'View Tracker',
-          onPress: () => {
-            if (onNavigateToTracker) {
-              onNavigateToTracker();
-            }
-          }
-        }
-      );
     } catch (error) {
       toast.error(
         'Add Failed',
