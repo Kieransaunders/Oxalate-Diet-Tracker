@@ -182,7 +182,14 @@ const RecipesScreen: React.FC<RecipesScreenProps> = ({ onClose, onNavigateToTrac
               </Pressable>
               
               <Pressable
-                onPress={() => toggleFavorite(recipe.id)}
+                onPress={() => {
+                  toggleFavorite(recipe.id);
+                  if (recipe.isFavorite) {
+                    toast.info('Removed from Favorites', `"${recipe.title}" removed from your favorites.`);
+                  } else {
+                    toast.success('Added to Favorites', `"${recipe.title}" added to your favorites.`);
+                  }
+                }}
                 className="p-1"
               >
                 <Ionicons
@@ -578,7 +585,14 @@ const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({ recipe, visible, 
               </Pressable>
               
               <Pressable
-                onPress={() => toggleFavorite(recipe.id)}
+                onPress={() => {
+                  toggleFavorite(recipe.id);
+                  if (liveIsFavorite) {
+                    toast.info('Removed from Favorites', `"${recipe.title}" removed from your favorites.`);
+                  } else {
+                    toast.success('Added to Favorites', `"${recipe.title}" added to your favorites.`);
+                  }
+                }}
                 className="w-10 h-10 items-center justify-center rounded-full bg-gray-100"
               >
                 <Ionicons
