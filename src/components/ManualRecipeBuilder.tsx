@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -18,7 +18,7 @@ import { toast } from '../utils/toast';
 import { cn } from '../utils/cn';
 import PremiumGate from './PremiumGate';
 import type { Recipe, RecipeIngredient } from '../types/recipe';
-import type { OxalateFood } from '../types/oxalate';
+import type { OxalateFoodItem } from '../types/oxalate';
 
 interface ManualRecipeBuilderProps {
   visible: boolean;
@@ -27,7 +27,7 @@ interface ManualRecipeBuilderProps {
 }
 
 interface SelectedIngredient extends RecipeIngredient {
-  foodItem: OxalateFood;
+  foodItem: OxalateFoodItem;
   quantity: number; // in grams
 }
 
@@ -49,7 +49,7 @@ const ManualRecipeBuilder: React.FC<ManualRecipeBuilderProps> = ({
   const [showFoodSearch, setShowFoodSearch] = useState(false);
   const [editingIngredientIndex, setEditingIngredientIndex] = useState<number | null>(null);
 
-  const { foods } = useOxalateStore();
+  const { foods, fetchFoods, isLoading: foodsLoading } = useOxalateStore();
   const { addRecipe, calculateRecipeOxalate } = useRecipeStore();
   const { canCreateRecipe, incrementRecipeCount } = useSubscriptionStore();
 
@@ -73,7 +73,7 @@ const ManualRecipeBuilder: React.FC<ManualRecipeBuilderProps> = ({
   // Calculate total oxalate
   const calculateTotalOxalate = useCallback(() => {
     return ingredients.reduce((total, ingredient) => {
-      const servingSize = ingredient.foodItem.serving_size_g || 100;
+      const servingSize = ingredient.foodItem.serving_grams || 100;
       const oxalatePerGram = ingredient.foodItem.oxalate_mg / servingSize;
       return total + (oxalatePerGram * ingredient.quantity);
     }, 0);
@@ -83,8 +83,8 @@ const ManualRecipeBuilder: React.FC<ManualRecipeBuilderProps> = ({
   const oxalatePerServing = servings ? totalOxalate / parseFloat(servings) : 0;
   const recipeCategory = determineOxalateCategory(oxalatePerServing);
 
-  const handleAddIngredient = (food: OxalateFood) => {
-    const servingSize = food.serving_size_g || 100; // Default to 100g if not defined
+  const handleAddIngredient = (food: OxalateFoodItem) => {
+    const servingSize = food.serving_grams || 100; // Default to 100g if not defined
     const newIngredient: SelectedIngredient = {
       id: `${Date.now()}-${Math.random()}`,
       name: food.name,
@@ -100,6 +100,19 @@ const ManualRecipeBuilder: React.FC<ManualRecipeBuilderProps> = ({
     setSearchQuery('');
     setShowFoodSearch(false);
   };
+
+  // Ensure foods are available when opening the builder/search
+  useEffect(() => {
+    if (visible && foods.length === 0) {
+      fetchFoods().catch(() => {});
+    }
+  }, [visible, foods.length, fetchFoods]);
+
+  useEffect(() => {
+    if (showFoodSearch && foods.length === 0) {
+      fetchFoods().catch(() => {});
+    }
+  }, [showFoodSearch, foods.length, fetchFoods]);
 
   const handleUpdateIngredientQuantity = (index: number, quantity: string) => {
     const numQuantity = parseFloat(quantity) || 0;
@@ -326,7 +339,7 @@ const ManualRecipeBuilder: React.FC<ManualRecipeBuilderProps> = ({
                     style={{ backgroundColor: getCategoryColor(ingredient.category || 'Low') }}
                   />
                   <Text className="text-sm text-gray-600 flex-1">
-                    {ingredient.oxalate_mg?.toFixed(1)}mg oxalate per {ingredient.foodItem.serving_size_g || 100}g serving
+                    {ingredient.oxalate_mg?.toFixed(1)}mg oxalate per {ingredient.foodItem.serving_grams || 100}g serving
                   </Text>
                 </View>
 
@@ -341,7 +354,7 @@ const ManualRecipeBuilder: React.FC<ManualRecipeBuilderProps> = ({
                   />
                   <Text className="text-sm text-gray-600 ml-2">grams</Text>
                   <Text className="text-sm text-gray-600 ml-4">
-                    ({((ingredient.foodItem.oxalate_mg / (ingredient.foodItem.serving_size_g || 100)) * ingredient.quantity).toFixed(1)}mg oxalate)
+                    ({((ingredient.foodItem.oxalate_mg / (ingredient.foodItem.serving_grams || 100)) * ingredient.quantity).toFixed(1)}mg oxalate)
                   </Text>
                 </View>
               </View>
@@ -441,7 +454,12 @@ const ManualRecipeBuilder: React.FC<ManualRecipeBuilderProps> = ({
 
             {/* Search Results */}
             <ScrollView className="flex-1">
-              {searchQuery.length > 0 ? (
+              {foodsLoading && foods.length === 0 ? (
+                <View className="items-center justify-center py-8">
+                  <ActivityIndicator size="small" />
+                  <Text className="text-gray-500 mt-2">Loading foods…</Text>
+                </View>
+              ) : searchQuery.length > 0 ? (
                 filteredFoods.length > 0 ? (
                   filteredFoods.map((food) => (
                     <Pressable
@@ -460,7 +478,7 @@ const ManualRecipeBuilder: React.FC<ManualRecipeBuilderProps> = ({
                               style={{ backgroundColor: getCategoryColor(food.category) }}
                             />
                             <Text className="text-sm text-gray-600">
-                              {food.oxalate_mg.toFixed(1)}mg per {food.serving_size_g || 100}g • {food.category}
+                              {food.oxalate_mg.toFixed(1)}mg per {food.serving_grams || 100}g • {food.category}
                             </Text>
                           </View>
                         </View>
