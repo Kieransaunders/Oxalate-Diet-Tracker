@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -51,7 +51,7 @@ const RecipesScreen: React.FC<RecipesScreenProps> = ({ onClose, onNavigateToTrac
   } = useRecipeStore();
   
   const { addRecipeIngredients } = useMealStore();
-  const { foods } = useOxalateStore();
+  const { foods, fetchFoods, isLoading: foodsLoading } = useOxalateStore();
   const { 
     status: subscriptionStatus, 
     canCreateRecipe, 
@@ -67,8 +67,23 @@ const RecipesScreen: React.FC<RecipesScreenProps> = ({ onClose, onNavigateToTrac
     setShowRecipeModal(true);
   };
 
+  useEffect(() => {
+    // Ensure food database is available for add-to-tracker operations
+    if (foods.length === 0) {
+      fetchFoods().catch(() => {});
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleAddToTracker = (recipe: Recipe) => {
     try {
+      if (foodsLoading || foods.length === 0) {
+        toast.info(
+          'Loading Food Database',
+          'Fetching food items to calculate oxalate. Please try again in a moment.'
+        );
+        return;
+      }
       const result = addRecipeIngredients({
         title: recipe.title,
         ingredients: recipe.ingredients,
