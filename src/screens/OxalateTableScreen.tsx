@@ -39,6 +39,7 @@ interface OxalateTableScreenProps {
 const OxalateTableScreen: React.FC<OxalateTableScreenProps> = ({ onNavigateToHome, onNavigateToSettings: _onNavigateToSettings, onNavigateToTracker }) => {
   const [selectedFood, setSelectedFood] = useState<OxalateFoodItem | null>(null);
   const [showNutritionModal, setShowNutritionModal] = useState(false);
+  const [autoOpenPortion, setAutoOpenPortion] = useState(false);
   const [showOracle, setShowOracle] = useState(false);
   const [showRecipes, setShowRecipes] = useState(false);
 
@@ -71,8 +72,9 @@ const OxalateTableScreen: React.FC<OxalateTableScreenProps> = ({ onNavigateToHom
   const { userPreferences } = useUserPreferencesStore();
   const { startTracking: _startTracking, incrementTrackingDay: _incrementTrackingDay } = useSubscriptionStore();
 
-  const openNutritionModal = (food: OxalateFoodItem) => {
+  const openNutritionModal = (food: OxalateFoodItem, opts?: { autoOpenPortion?: boolean }) => {
     setSelectedFood(food);
+    setAutoOpenPortion(!!opts?.autoOpenPortion);
     setShowNutritionModal(true);
   };
 
@@ -427,12 +429,21 @@ const OxalateTableScreen: React.FC<OxalateTableScreenProps> = ({ onNavigateToHom
               <Pressable 
                 onPress={() => openNutritionModal(food)}
                 className="p-1 mr-1"
+                accessibilityLabel="Food info"
               >
                 <Ionicons name="information-circle-outline" size={16} color="#6b7280" />
               </Pressable>
               <Pressable 
+                onPress={() => openNutritionModal(food, { autoOpenPortion: true })}
+                className="p-1 mr-1"
+                accessibilityLabel="Add to tracker"
+              >
+                <Ionicons name="add-circle" size={16} color="#3b82f6" />
+              </Pressable>
+              <Pressable 
                 onPress={() => openOracleForFood(food.name)}
                 className="p-1"
+                accessibilityLabel="Ask Oracle"
               >
                 <Ionicons name="chatbubble-outline" size={14} color="#10b981" />
               </Pressable>
@@ -864,6 +875,7 @@ const OxalateTableScreen: React.FC<OxalateTableScreenProps> = ({ onNavigateToHom
         visible={showNutritionModal}
         onClose={closeNutritionModal}
         onAddToMeal={handleAddToMeal}
+        autoOpenPortionSelector={autoOpenPortion}
       />
 
 

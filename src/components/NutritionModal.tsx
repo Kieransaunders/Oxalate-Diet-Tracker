@@ -18,11 +18,20 @@ interface NutritionModalProps {
   visible: boolean;
   onClose: () => void;
   onAddToMeal?: (food: OxalateFoodItem, portion: number, oxalateAmount: number) => void;
+  autoOpenPortionSelector?: boolean;
 }
 
-const NutritionModal: React.FC<NutritionModalProps> = ({ food, visible, onClose, onAddToMeal }) => {
+const NutritionModal: React.FC<NutritionModalProps> = ({ food, visible, onClose, onAddToMeal, autoOpenPortionSelector = false }) => {
   const [showPortionSelector, setShowPortionSelector] = useState(false);
   const { userPreferences } = useUserPreferencesStore();
+  
+  React.useEffect(() => {
+    if (visible && autoOpenPortionSelector) {
+      // open portion selector shortly after modal opens to ensure layout is ready
+      const t = setTimeout(() => setShowPortionSelector(true), 100);
+      return () => clearTimeout(t);
+    }
+  }, [visible, autoOpenPortionSelector]);
   
   if (!food) return null;
 
